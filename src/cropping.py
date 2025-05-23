@@ -1,20 +1,21 @@
-# import pymupdf
+import pymupdf
 
 
-# def auto_crop_pdf(input_path:str, output_path:str, border_pt=20):
+def crop_and_scale(
+    src_doc: pymupdf.Document, bounds: list[pymupdf.Rect]
+) -> pymupdf.Document:
+    """Return a new Document with each page trimmed & scaled to fill."""
+    output_doc: pymupdf.Document = pymupdf.open()
+    for page_num, clipped_rect in enumerate(bounds):
+        src_page = src_doc[page_num]
+        width, height = src_page.rect.width, src_page.rect.height
+        new_page: pymupdf.Page = output_doc.new_page(width=width, height=height)  # type: ignore[reportUnknownMemberType]
 
-#     doc = pymupdf.open(input_path)
-#     for page in doc:
-#         # get tight bbox of all text and images
-#         # These are rectangles of the page, same as page.rect
-#         # Starts with 0, 0 and and goes to the end, not useful
-#         rect = page.bound()
-#         # expand it by border_pt (on each side)
-#         rect = pymupdf.Rect(
-#             rect.x0 + border_pt,
-#             rect.y0 + border_pt,
-#             rect.x1 - border_pt,
-#             rect.y1 - border_pt
-#         )
-#         page.set_cropbox(rect)
-#     doc.save(output_path)
+        # draw clipped area into full page 
+        new_page.show_pdf_page(  # type: ignore[reportUnknownMemberType]
+            pymupdf.Rect(0, 0, width, height), src_doc, page_num, clip=clipped_rect
+        )
+    return output_doc
+
+
+# todo add here method to override the current pdf and save it to the file cuz we have losed all the metadata
