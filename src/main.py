@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from bounds.factory import EXTRACTOR_MAPPING
+from crop.factory import CROPPER_MAPPING
 from processing import process_pdf
 
 
@@ -42,11 +43,19 @@ def main():
         default=0,
         help="Padding (pts) around extracted bounds",
     )
+    parser.add_argument(
+        "-c",
+        "--cropper",
+        choices=list(CROPPER_MAPPING.keys()),
+        required=True,
+        help="Which cropper to use.",
+    )
 
     args = parser.parse_args()
     file_name = args.name if args.name is not None else args.input.name
     output = args.output_dir / file_name
-    process_pdf(args.input, output, args.bounds_extractor, args.border)
+    process_pdf(args.input, output, args.bounds_extractor, args.border,
+                args.cropper)
 
 
 if __name__ == "__main__":
