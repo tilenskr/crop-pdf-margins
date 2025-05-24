@@ -23,7 +23,8 @@ The scale method has currently problems of not saving the metadata, so we lose e
 | text_page     | scale     | Missing images if they are on the top like page 50.
 | dict_text     | box       | Has more white on the left and right than text page (first page). Otherwise similar on the text_page.
 | dict_text     | scale     | Has more white on the left and right than text page (first page). Otherwise similar on the text_page.
-
+text_page_images| box        | First page has a little more left and second stays the same. There is image on 50 page.
+text_page_images| scale      | The similar than text_page_images and text_page scale method.
 
 
 The text_page is better alternative so we built on this.
