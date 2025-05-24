@@ -39,7 +39,6 @@ class OCRBoundsExtractor(BoundsExtractor):
                 by1 = (top  + height) * scale_factor
                 x0, y0 = min(x0, bx0), min(y0, by0)
                 x1, y1 = max(x1, bx1), max(y1, by1)
-            # todo reformat this function as it is used multiple times (each extractor)
             rect = self._get_rectangle(
                 x0=x0,
                 y0=y0,
@@ -48,18 +47,5 @@ class OCRBoundsExtractor(BoundsExtractor):
                 has_content=any(text_data),
                 page_rect=page.rect,
             )
-            if any(text_data):
-                rect = pymupdf.Rect(
-                    x0 - self._border_pt,
-                    y0 - self._border_pt,
-                    x1 + self._border_pt,
-                    y1 + self._border_pt,
-                )
-                rectangles.append(rect)
-            else:
-                # handle empty pages
-                current_rect: pymupdf.Rect = page.rect
-                rectangles.append(
-                    pymupdf.Rect(0, 0, current_rect.width, current_rect.height)
-                )  
+            rectangles.append(rect)    
         return rectangles

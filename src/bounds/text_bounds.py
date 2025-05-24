@@ -33,21 +33,15 @@ class TextBlocksBoundsExtractor(BoundsExtractor, ABC):
                 x0, y0 = min(x0, img_rect.x0), min(y0, img_rect.y0)
                 x1, y1 = max(x1, img_rect.x1), max(y1, img_rect.y1)
 
-            # apply border and crop
-            if len(text_blocks) != 0:
-                rect = pymupdf.Rect(
-                    x0 - self._border_pt,
-                    y0 - self._border_pt,
-                    x1 + self._border_pt,
-                    y1 + self._border_pt,
+            rect = self._get_rectangle(
+                    x0=x0,
+                    y0=y0,
+                    x1=x1,
+                    y1=y1,
+                    has_content=len(text_blocks) != 0,
+                    page_rect=page.rect,
                 )
-                rectangles.append(rect)
-            else:
-                # handle empty pages
-                current_rect: pymupdf.Rect = page.rect
-                rectangles.append(
-                    pymupdf.Rect(0, 0, current_rect.width, current_rect.height)
-                )
+            rectangles.append(rect) 
         return rectangles
 
     @staticmethod

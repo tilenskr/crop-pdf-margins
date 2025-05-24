@@ -2,6 +2,7 @@ from typing import override
 from bounds.base import BoundsExtractor
 import pymupdf
 
+
 class PageBoundsExtractor(BoundsExtractor):
     """Extracts the tightest content bounding‐box on each page."""
 
@@ -9,13 +10,15 @@ class PageBoundsExtractor(BoundsExtractor):
     def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
         rectangles: list[pymupdf.Rect] = []
         for page in doc:
-            rect = page.bound()
+            bounds = page.bound()
             # expand it by border_pt (on each side)
-            rect = pymupdf.Rect(
-                rect.x0 + self._border_pt,
-                rect.y0 + self._border_pt,
-                rect.x1 - self._border_pt,
-                rect.y1 - self._border_pt
+            rect = self._get_rectangle(
+                x0=bounds.x0,
+                y0=bounds.y0,
+                x1=bounds.x1,
+                y1=bounds.y1,
+                has_content=True,
+                page_rect=page.rect,
             )
             rectangles.append(rect)
         return rectangles
