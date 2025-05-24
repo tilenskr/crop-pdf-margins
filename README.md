@@ -6,6 +6,9 @@ Auto-crop blank margins from PDFs while preserving original page size.
 `pdm init`
 `pdm python install`
 `pdm add pymupf`
+`pdm add pytesseract`
+
+`Install tesseract OCR on your computer for the ocr detector. See docs for more.`
 
 # what i have tried
 

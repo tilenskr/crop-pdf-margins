@@ -1,4 +1,5 @@
 from bounds.base import BoundsExtractor
+from bounds.ocr_bounds import OCRBoundsExtractor
 from bounds.text_bounds import DictTextAndImageBoundsExtractor, DictTextBoundsExtractor, TextBlocksAndImageBoundsExtractor, TextPageBoundsExtractor
 from bounds.page_bounds import PageBoundsExtractor
 
@@ -9,6 +10,7 @@ EXTRACTOR_MAPPING: dict[str, type[BoundsExtractor]] = {
     "dict_text": DictTextBoundsExtractor,
     "text_page_images": TextBlocksAndImageBoundsExtractor,
     "dict_text_images": DictTextAndImageBoundsExtractor,
+    "ocr": OCRBoundsExtractor,
 }
 
 
