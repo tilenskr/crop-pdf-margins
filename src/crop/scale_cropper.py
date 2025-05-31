@@ -1,9 +1,12 @@
+from typing import override
+
 import pymupdf
 
 from crop.base import Cropper
 
 
 class ScaleCropper(Cropper):
+    @override
     def crop(self, bounds: list[pymupdf.Rect]) -> pymupdf.Document:
         output_doc: pymupdf.Document = pymupdf.open()
         for page_num, clipped_rect in enumerate(bounds):
