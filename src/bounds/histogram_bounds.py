@@ -21,6 +21,14 @@ class HistogramBoundsExtractor(BoundsExtractor):
             dominant_color, _ = counter.most_common(1)[0]
 
             leftmost_point = self._get_leftmost_point(pixels, img.size, dominant_color)
+            if self._is_empty_page(pixels, img.size[0], leftmost_point, dominant_color):
+                rect = self._get_rectangle(
+                bounds=pymupdf.Rect(),
+                has_content=False,
+                page_rect=page.rect,
+            )
+                rectangles.append(rect)
+                continue
             topmost_point = self._get_topmost_point(pixels, img.size, dominant_color)
             rightmost_point = self._get_rightmost_point(pixels, img.size, dominant_color)
             bottommost_point = self._get_bottommost_point(pixels, img.size, dominant_color)
@@ -47,6 +55,11 @@ class HistogramBoundsExtractor(BoundsExtractor):
                     return (j, i)
         return (0, 0)
     
+    def _is_empty_page(self, pixels: list[tuple[int, int, int]], 
+                       width: int, leftmost_point:tuple[int, int],
+                       dominant_color: tuple[int,int,int]) -> bool:
+        return leftmost_point == (0, 0) and self._pixel_at(pixels, width, 
+                                                            leftmost_point[0], leftmost_point[1]) == dominant_color    
     def _get_topmost_point(self, pixels: list[tuple[int, int, int]], 
                             img_size: tuple[int, int], color: tuple[int, int, int]) -> tuple[int, int]:
         width, height = img_size
