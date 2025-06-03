@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from borders import BorderSpec, BorderUnit, parse_border
 from bounds.factory import EXTRACTOR_MAPPING
 from crop.factory import CROPPER_MAPPING
 from processing import process_pdf
@@ -39,8 +40,8 @@ def main():
     parser.add_argument(
         "-b",
         "--border",
-        type=float,
-        default=0,
+        type=parse_border,
+        default=BorderSpec(0.0, BorderUnit.POINT),
         help="Padding (pts) around extracted bounds",
     )
     parser.add_argument(
@@ -54,8 +55,14 @@ def main():
     args = parser.parse_args()
     file_name = args.name if args.name is not None else args.input.name
     output = args.output_dir / file_name
-    process_pdf(args.input, output, args.bounds_extractor, args.border,
-                args.cropper)
+    process_pdf(args.input, output, args.bounds_extractor, args.border, args.cropper)
+
+
+def validate_border_input(border: str) -> BorderSpec:
+    try:
+        return parse_border(border)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(e)
 
 
 if __name__ == "__main__":

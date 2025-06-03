@@ -34,14 +34,16 @@ class TextBlocksBoundsExtractor(BoundsExtractor, ABC):
                 x1, y1 = max(x1, img_rect.x1), max(y1, img_rect.y1)
 
             rect = self._get_rectangle(
+                 bounds=pymupdf.Rect(
                     x0=x0,
                     y0=y0,
                     x1=x1,
                     y1=y1,
-                    has_content=len(text_blocks) != 0,
-                    page_rect=page.rect,
-                )
-            rectangles.append(rect) 
+                ),
+                has_content=len(text_blocks) != 0,
+                page_rect=page.rect,
+            )
+            rectangles.append(rect)
         return rectangles
 
     @staticmethod

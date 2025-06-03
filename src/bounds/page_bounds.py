@@ -13,10 +13,9 @@ class PageBoundsExtractor(BoundsExtractor):
             bounds = page.bound()
             # expand it by border_pt (on each side)
             rect = self._get_rectangle(
-                x0=bounds.x0,
-                y0=bounds.y0,
-                x1=bounds.x1,
-                y1=bounds.y1,
+                bounds=pymupdf.Rect(
+                    x0=bounds.x0, y0=bounds.y0, x1=bounds.x1, y1=bounds.y1
+                ),
                 has_content=True,
                 page_rect=page.rect,
             )

@@ -24,11 +24,15 @@ class HistogramBoundsExtractor(BoundsExtractor):
             topmost_point = self._get_topmost_point(pixels, img.size, dominant_color)
             rightmost_point = self._get_rightmost_point(pixels, img.size, dominant_color)
             bottommost_point = self._get_bottommost_point(pixels, img.size, dominant_color)
-            rect = pymupdf.Rect(
-                x0=leftmost_point[0],
-                y0=topmost_point[1],
-                x1=rightmost_point[0],
-                y1=bottommost_point[1],
+            rect = self._get_rectangle(
+                bounds=pymupdf.Rect(
+                    x0=leftmost_point[0],
+                    y0=topmost_point[1],
+                    x1=rightmost_point[0],
+                    y1=bottommost_point[1],
+                ),
+                has_content=True,
+                page_rect=page.rect,
             )
             rectangles.append(rect)
         return rectangles

@@ -2,10 +2,13 @@ from abc import ABC, abstractmethod
 
 import pymupdf
 
+from borders import BorderSpec
+from bounds.border_adjuster import get_border_adjuster
+
 
 class BoundsExtractor(ABC):
-    def __init__(self, border_pt: float = 0):
-        self._border_pt = border_pt
+    def __init__(self, border: BorderSpec):
+        self._border_adjuster = get_border_adjuster(border)
 
     @abstractmethod
     def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
@@ -13,22 +16,12 @@ class BoundsExtractor(ABC):
 
     def _get_rectangle(
         self,
-        *,
-        x0: float,
-        y0: float,
-        x1: float,
-        y1: float,
+        bounds: pymupdf.Rect,
         has_content: bool,
         page_rect: pymupdf.Rect,
     ) -> pymupdf.Rect:
         if has_content:
-            rect = pymupdf.Rect(
-                x0 - self._border_pt,
-                y0 - self._border_pt,
-                x1 + self._border_pt,
-                y1 + self._border_pt,
-            )
-            return rect
+            return self._border_adjuster.adjust_bounds(bounds, page_rect)
         else:
             # handle empty pages
             return pymupdf.Rect(0, 0, page_rect.width, page_rect.height)
