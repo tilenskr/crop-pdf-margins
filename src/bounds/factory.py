@@ -1,4 +1,4 @@
-from borders import BorderSpec
+from borders import FourBorders
 from bounds.base import BoundsExtractor
 from bounds.histogram_bounds import HistogramBoundsExtractor
 from bounds.ocr_bounds import OCRBoundsExtractor
@@ -19,9 +19,9 @@ EXTRACTOR_MAPPING: dict[str, type[BoundsExtractor]] = {
 }
 
 
-def get_bounds_extractor(name: str, border: BorderSpec) -> BoundsExtractor:
+def get_bounds_extractor(name: str, borders: FourBorders) -> BoundsExtractor:
     try:
         cls = EXTRACTOR_MAPPING[name]
     except KeyError:
         raise ValueError(f"Unknown bounds extractor: {name!r}")
-    return cls(border)
+    return cls(borders)

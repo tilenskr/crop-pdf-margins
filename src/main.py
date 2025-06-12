@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from borders import BorderSpec, BorderUnit, parse_border
+from borders import BorderSpec, BorderUnit, FourBorders, expand_css_border, parse_border
 from bounds.factory import EXTRACTOR_MAPPING
 from crop.factory import CROPPER_MAPPING
 from processing import process_pdf
@@ -40,9 +40,14 @@ def main():
     parser.add_argument(
         "-b",
         "--border",
-        type=parse_border,
-        default=BorderSpec(0.0, BorderUnit.POINT),
-        help="Padding (pts) around extracted bounds",
+        nargs="+",
+        type=validate_border_input,
+        default=[BorderSpec(0.0, BorderUnit.POINT)],
+        help=(
+            "Padding around extracted bounds, specified in pixels (e.g., 10.5) or percentage (e.g., 5.3%). "
+            "Supports either a single value (applied to all sides) or four values like in CSS "
+            "(top, right, bottom, left)."
+        ),
     )
     parser.add_argument(
         "-c",
@@ -55,7 +60,8 @@ def main():
     args = parser.parse_args()
     file_name = args.name if args.name is not None else args.input.name
     output = args.output_dir / file_name
-    process_pdf(args.input, output, args.bounds_extractor, args.border, args.cropper)
+    borders = validate_and_expand_border(parser, args.border)
+    process_pdf(args.input, output, args.bounds_extractor, borders, args.cropper)
 
 
 def validate_border_input(border: str) -> BorderSpec:
@@ -64,6 +70,11 @@ def validate_border_input(border: str) -> BorderSpec:
     except ValueError as e:
         raise argparse.ArgumentTypeError(e)
 
+def validate_and_expand_border(parser, raw_specs) -> FourBorders:
+    try:
+        return expand_css_border(raw_specs)
+    except ValueError as e:
+        return parser.error(e)
 
 if __name__ == "__main__":
     main()

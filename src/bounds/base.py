@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 
 import pymupdf
 
-from borders import BorderSpec
-from bounds.border_adjuster import get_border_adjuster
+from borders import BorderSpec, FourBorders
+from bounds.border_adjuster import BorderAdjuster
 
 
 class BoundsExtractor(ABC):
-    def __init__(self, border: BorderSpec):
-        self._border_adjuster = get_border_adjuster(border)
+    def __init__(self, borders: FourBorders):
+        self._border_adjuster = BorderAdjuster(borders)
 
     @abstractmethod
     def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
