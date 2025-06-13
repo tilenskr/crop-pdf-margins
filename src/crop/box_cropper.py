@@ -12,6 +12,6 @@ class BoxCropper(Cropper):
     @override
     def crop(self, bounds: list[pymupdf.Rect]) -> pymupdf.Document:
         for page_index, rect in enumerate(bounds):
-                page = self._doc[page_index]
-                page.set_cropbox(rect)
+            page = self._doc[page_index]
+            page.set_cropbox(rect)
         return self._doc

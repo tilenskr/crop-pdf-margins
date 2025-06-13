@@ -2,7 +2,7 @@ import pymupdf
 
 from crop.base import Cropper
 from crop.box_cropper import BoxCropper
-from crop.scale_cropper import ScaleCropper
+from crop.scale_cropper.core import ScaleCropper
 
 CROPPER_MAPPING: dict[str, type[Cropper]] = {
     "box": BoxCropper,
