@@ -4,7 +4,7 @@ import pymupdf
 from PIL import Image
 from tqdm import tqdm
 
-from bounds.base import BoundsExtractor
+from .base import BoundsExtractor
 from collections import Counter
 
 

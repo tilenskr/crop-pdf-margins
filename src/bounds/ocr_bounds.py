@@ -5,7 +5,7 @@ import pytesseract
 from PIL import Image, ImageOps
 from tqdm import tqdm
 
-from bounds.base import BoundsExtractor
+from .base import BoundsExtractor
 
 
 class OCRBoundsExtractor(BoundsExtractor):

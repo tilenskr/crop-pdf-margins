@@ -13,11 +13,13 @@ class BorderSpec:
     value: float
     unit: BorderUnit
 
+
 class FourBorders(NamedTuple):
     top: BorderSpec
     right: BorderSpec
     bottom: BorderSpec
     left: BorderSpec
+
 
 def parse_border(data: str) -> BorderSpec:
     """

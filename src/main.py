@@ -2,8 +2,8 @@ import argparse
 from pathlib import Path
 
 from borders import BorderSpec, BorderUnit, FourBorders, expand_css_border, parse_border
-from bounds.factory import EXTRACTOR_MAPPING
-from crop.factory import CROPPER_MAPPING
+from bounds import EXTRACTOR_MAPPING
+from crop import CROPPER_MAPPING
 from processing import process_pdf
 
 
@@ -70,11 +70,13 @@ def validate_border_input(border: str) -> BorderSpec:
     except ValueError as e:
         raise argparse.ArgumentTypeError(e)
 
+
 def validate_and_expand_border(parser, raw_specs) -> FourBorders:
     try:
         return expand_css_border(raw_specs)
     except ValueError as e:
         return parser.error(e)
+
 
 if __name__ == "__main__":
     main()

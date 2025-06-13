@@ -1,5 +1,5 @@
 from typing import override
-from bounds.base import BoundsExtractor
+from .base import BoundsExtractor
 import pymupdf
 
 

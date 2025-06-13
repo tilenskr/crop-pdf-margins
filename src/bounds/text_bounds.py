@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import TypedDict, override
 import pymupdf
 
-from bounds.base import BoundsExtractor
+from .base import BoundsExtractor
 
 
 class TextBlock(TypedDict):

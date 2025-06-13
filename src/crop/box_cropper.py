@@ -2,7 +2,7 @@ from typing import override
 
 import pymupdf
 
-from crop.base import Cropper
+from .base import Cropper
 
 
 class BoxCropper(Cropper):

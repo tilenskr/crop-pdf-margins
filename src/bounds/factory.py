@@ -1,9 +1,9 @@
 from borders import FourBorders
-from bounds.base import BoundsExtractor
-from bounds.histogram_bounds import HistogramBoundsExtractor
-from bounds.ocr_bounds import OCRBoundsExtractor
-from bounds.page_bounds import PageBoundsExtractor
-from bounds.text_bounds import (DictTextAndImageBoundsExtractor,
+from .base import BoundsExtractor
+from .histogram_bounds import HistogramBoundsExtractor
+from .ocr_bounds import OCRBoundsExtractor
+from .page_bounds import PageBoundsExtractor
+from .text_bounds import (DictTextAndImageBoundsExtractor,
                                 DictTextBoundsExtractor,
                                 TextBlocksAndImageBoundsExtractor,
                                 TextPageBoundsExtractor)

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import pymupdf
 
 from borders import FourBorders
-from bounds.border_adjuster import BorderAdjuster
+from .border_adjuster import BorderAdjuster
 
 
 class BoundsExtractor(ABC):

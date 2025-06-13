@@ -8,5 +8,5 @@ class Cropper(ABC):
         self._doc = doc
 
     @abstractmethod
-    def crop(self,  bounds: list[pymupdf.Rect]) -> pymupdf.Document:
+    def crop(self, bounds: list[pymupdf.Rect]) -> pymupdf.Document:
         pass
