@@ -21,21 +21,21 @@ def main():
         "--output-dir",
         type=Path,
         required=True,
-        help="Directory where the cropped PDF will be saved.",
+        help="Directory where the cropped PDF will be saved to.",
     )
     parser.add_argument(
         "-n",
         "--name",
         type=str,
         default=None,
-        help="Optional output filename (without extension). Defaults to input basename.",
+        help="Optional output filename (without extension). Defaults to the input basename.",
     )
     parser.add_argument(
         "-be",
         "--bounds-extractor",
+        default="histogram",
         choices=list(EXTRACTOR_MAPPING.keys()),
-        required=True,
-        help="Which bounds extractor to use.",
+        help="Which heuristic to use for extracting the bounds.",
     )
     parser.add_argument(
         "-b",
@@ -44,7 +44,7 @@ def main():
         type=validate_border_input,
         default=[BorderSpec(0.0, BorderUnit.POINT)],
         help=(
-            "Padding around extracted bounds, specified in pixels (e.g., 10.5) or percentage (e.g., 5.3%). "
+            "Padding around extracted bounds, specified in pixels (e.g., 10.5) or percentage (e.g., 5.3%%). "
             "Supports either a single value (applied to all sides) or four values like in CSS "
             "(top, right, bottom, left)."
         ),
@@ -52,9 +52,9 @@ def main():
     parser.add_argument(
         "-c",
         "--cropper",
+        default="scale",
         choices=list(CROPPER_MAPPING.keys()),
-        required=True,
-        help="Which cropper to use.",
+        help="Cropping strategy used to trim page content.",
     )
 
     args = parser.parse_args()
