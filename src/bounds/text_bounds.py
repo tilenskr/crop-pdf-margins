@@ -70,7 +70,7 @@ class TextBlocksBoundsExtractor(BoundsExtractor, ABC):
 
 
 class TextPageBoundsExtractor(TextBlocksBoundsExtractor):
-    """text blocks (Textpage content as a Python dictionary; . May include text and images.)"""
+    """Get text blocks (textpage content) as a Python dictionary."""
 
     @staticmethod
     @override
