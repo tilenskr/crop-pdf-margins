@@ -1,7 +1,7 @@
 [project]
 name = "crop-pdf-margins"
-version = "0.1.0"
-description = "Default template for PDM package"
+version = "0.8.0"
+description = "Flexible tool for removing margins from PDFs to improve readability."
 authors = [
     {name = "tilenskr", email = "skrinjar.tilen@gmail.com"},
 ]
