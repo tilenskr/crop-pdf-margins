@@ -19,4 +19,6 @@ def process_pdf(
     bounds = extractor.get_bounds(doc)
     cropper = get_cropper(cropper_name, doc)
     new_doc = cropper.crop(bounds)
+    
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     new_doc.save(output_path)
