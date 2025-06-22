@@ -1,0 +1,22 @@
+[project]
+name = "crop-pdf-margins"
+version = "0.8.0"
+description = "Flexible tool for removing margins from PDFs to improve readability."
+authors = [
+    {name = "tilenskr", email = "skrinjar.tilen@gmail.com"},
+]
+dependencies = ["pymupdf>=1.25.2", "pytesseract>=0.3.13", "tqdm>=4.67.1"]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.scripts]
+convert = [
+  "python", "src/main.py",
+  "-i", "<pdf-path>",
+  "-d", "output",
+  "-b", "1%", "5%", "1%", "5%",
+]
