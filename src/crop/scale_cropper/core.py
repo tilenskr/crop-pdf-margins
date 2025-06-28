@@ -4,6 +4,7 @@ from typing import override
 import pymupdf
 
 from ..base import Cropper
+from .annotations import copy_annotations
 
 
 class ScaleCropper(Cropper):
@@ -31,6 +32,7 @@ class ScaleCropper(Cropper):
         self._copy_table_of_contents(dst)
         self._copy_attachments(dst)
         self._copy_optional_content_groups(dst)
+        copy_annotations(self._doc, dst)
 
     def _copy_metadata(self, dst: pymupdf.Document):
         """Copy basic metadata (Title, Author, etc.)."""
