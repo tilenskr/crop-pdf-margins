@@ -4,7 +4,7 @@ from . import constants
 
 
 def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
-
+    xref_map: dict[int, int] = {}
     for page_num in range(src.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
@@ -144,14 +144,18 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             # else:
             #     # skip unsupported types
             #     continue
+            xref_map[src_annotation.xref] = dst_annotation.xref
 
             dst_annotation.set_info(src_annotation.info)
             dst_annotation.set_border(src_annotation.border)
-            dst_annotation.set_blendmode(src_annotation.blendmode)
+            if src_annotation.blendmode is not None:
+                dst_annotation.set_blendmode(src_annotation.blendmode)
             dst_annotation.set_colors(src_annotation.colors)
             dst_annotation.set_flags(src_annotation.flags)
             if src_annotation.irt_xref != 0:
-                dst_annotation.set_irt_xref(src_annotation.irt_xref)
+                dst_annotation.set_irt_xref(xref_map[src_annotation.irt_xref])
+            if src_annotation.line_ends is not None:
+                dst_annotation.set_line_ends(src_annotation.line_ends[0], src_annotation.line_ends[1])
             dst_annotation.set_name(src_annotation.info["name"])
             dst_annotation.set_oc(src_annotation.get_oc())
             dst_annotation.set_opacity(src_annotation.opacity)
