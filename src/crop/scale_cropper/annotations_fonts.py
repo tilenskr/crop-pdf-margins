@@ -41,7 +41,6 @@ class FreeTextInfo(TextStyle):
 def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeTextInfo:
     text_info = FreeTextInfo()
     text_info.fill_color = annotation.colors["fill"]
-    text_info.border_color = annotation.colors["stroke"]
     text_info.border_width = (
         annotation.border["width"] if annotation.border["width"] >= 0 else 0
     )
@@ -56,6 +55,7 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
     rich_text_info = doc.xref_get_key(annotation.xref, "RC")
 
     if rich_text_info[0] != "null":
+        text_info.border_color = annotation.colors["stroke"]
         text_info.richtext = True
         text_info.text = rich_text_info[1]
         return text_info
@@ -77,6 +77,7 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
     merged_style = merge_two_text_styles(text_style_da_and_q, text_style_ds)
     set_text_style_free_text_info(merged_style, text_info)
     return text_info
+
 
 def extract_text_style_from_display_style(display_text: str) -> TextStyle:
     ## Example: font: Helvetica, sans-serif 12pt; color: #F00;
@@ -104,11 +105,13 @@ def extract_text_style_from_display_style(display_text: str) -> TextStyle:
 
     return text_style
 
+
 def set_text_style_free_text_info(text_style: TextStyle, text_info: FreeTextInfo):
     text_info.font_name = text_style.font_name
     text_info.font_size = text_style.font_size
     text_info.text_color = text_style.text_color
     text_info.align = text_style.align
+
 
 def extract_text_style_from_da_and_quadding(da: str, quadding: str) -> TextStyle:
     text_style = TextStyle()

@@ -38,7 +38,6 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
                         src_annotation.info["name"],
                     )
                 case constants.PDF_ANNOT_FREE_TEXT:
-                    
                     free_text_info = extract_font_info(src, src_annotation)
                     dst_annotation = dst_page.add_freetext_annot(
                         src_annotation.rect,
@@ -158,7 +157,8 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             dst_annotation.set_border(src_annotation.border)
             if src_annotation.blendmode is not None:
                 dst_annotation.set_blendmode(src_annotation.blendmode)
-            dst_annotation.set_colors(src_annotation.colors)
+            if annotation_type != constants.PDF_ANNOT_FREE_TEXT:
+                dst_annotation.set_colors(src_annotation.colors)
             dst_annotation.set_flags(src_annotation.flags)
             if src_annotation.irt_xref != 0:
                 dst_annotation.set_irt_xref(xref_map[src_annotation.irt_xref])
