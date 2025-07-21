@@ -32,7 +32,7 @@ You will get the output of the needed command line arguments.
 
 Alternatively, you can use the predefined task `convert`, which includes example arguments and demonstrates how to call the program. You will have to just change the `<pdf-path>`:
 ```bash
-    pdm  run convert
+    pdm run convert
 ```
 ### Command-Line Usage
 For more control, you can run the program with specific options:
