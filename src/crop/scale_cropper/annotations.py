@@ -1,5 +1,7 @@
 import pymupdf
 
+from .annotations_fonts import extract_font_info
+
 from . import constants
 
 
@@ -33,26 +35,32 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
                         src_filename,
                         src_annotation.file_info.get("ufilename", src_filename),
                         src_annotation.file_info["description"],
-                        src_annotation.info["name"])
-                # case constants.PDF_ANNOT_FREE_TEXT:
-                #     dst_annotation = dst_page.add_freetext_annot(
-                #         rect=src_annotation.rect, text=src_annotation.info["content"],
-                #         fontsize=src_annotation.set_info.get("fontsize", 11),
-                #         fontname=src_annotation.set_info.get("fontname", "helv"),
-                #         text_color=colors.get("stroke", 0),
-                #         fill_color=colors.get("fill", None),
-                #         border_width=src_annotation.set_info.get("border_width", 0),
-                #         dashes=src_annotation.set_info.get("dashes", None),
-                #         callout=src_annotation.set_info.get("callout", None),
-                #         line_end=src_annotation.set_info.get("line_end", fitz.PDF_ANNOT_LE_OPEN_ARROW),
-                #         opacity=src_annotation.set_info.get("opacity", 1),
-                #         align=src_annotation.set_info.get("align", fitz.TEXT_ALIGN_LEFT),
-                #         rotate=src_annotation.set_info.get("rotate", 0),
-                #         richtext=src_annotation.set_info.get("richtext", False),
-                #         style=src_annotation.set_info.get("style", None)
-                #     )
+                        src_annotation.info["name"],
+                    )
+                case constants.PDF_ANNOT_FREE_TEXT:
+                    
+                    free_text_info = extract_font_info(src, src_annotation)
+                    dst_annotation = dst_page.add_freetext_annot(
+                        src_annotation.rect,
+                        free_text_info.text,
+                        
+                        fontsize=free_text_info.font_size,
+                        fontname=free_text_info.font_name,
+                        text_color=free_text_info.text_color,
+                        fill_color=free_text_info.fill_color,
+                        border_color=free_text_info.border_color,
+                        border_width=free_text_info.border_width,
+                        dashes=free_text_info.dashes,
+                        callout=free_text_info.callout,
+                        line_end=free_text_info.line_end,
+                        opacity=free_text_info.opacity,
+                        align=free_text_info.align,
+                        rotate=free_text_info.rotate,
+                        richtext=free_text_info.richtext,
+                    )
 
                 case _:
+                    # should print a warning or log here
                     continue
 
             # elif a_type == PDF_ANNOT_LINE:
