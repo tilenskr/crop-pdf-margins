@@ -61,19 +61,6 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
                 src_annotation.info["content"],
                 src_annotation.info["name"],
             )
-        case AnnotType.PDF_ANNOT_FILE_ATTACHMENT:
-            try:
-                src_filename = src_annotation.file_info["filename"]
-            except Exception:
-                src_filename = "attachment"
-            return dst_page.add_file_annot(
-                src_annotation.rect.tl,
-                src_annotation.get_file(),
-                src_filename,
-                src_annotation.file_info.get("ufilename", src_filename),
-                src_annotation.file_info["description"],
-                src_annotation.info["name"],
-            )
         case AnnotType.PDF_ANNOT_FREE_TEXT:
             free_text_info = extract_font_info(src_document, src_annotation)
             return dst_page.add_freetext_annot(
@@ -93,6 +80,19 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
                 align=free_text_info.align,
                 rotate=free_text_info.rotate,
                 richtext=free_text_info.richtext,
+            )
+        case AnnotType.PDF_ANNOT_FILE_ATTACHMENT:
+            try:
+                src_filename = src_annotation.file_info["filename"]
+            except Exception:
+                src_filename = "attachment"
+            return dst_page.add_file_annot(
+                src_annotation.rect.tl,
+                src_annotation.get_file(),
+                src_filename,
+                src_annotation.file_info.get("ufilename", src_filename),
+                src_annotation.file_info["description"],
+                src_annotation.info["name"],
             )
 
         case _:
