@@ -3,7 +3,7 @@ import pymupdf
 
 from .annotations_fonts import extract_font_info
 
-from . import constants
+from .constants import AnnotType 
 
 
 def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
@@ -21,15 +21,15 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             dst_annotation: pymupdf.Annot
             try:
                 match annotation_type:
-                    case constants.PDF_ANNOT_CARET:
+                    case AnnotType.PDF_ANNOT_CARET:
                         dst_annotation = dst_page.add_caret_annot(src_annotation.rect.tl)
-                    case constants.PDF_ANNOT_TEXT:
+                    case AnnotType.PDF_ANNOT_TEXT:
                         dst_annotation = dst_page.add_text_annot(
                             src_annotation.rect.tl,
                             src_annotation.info["content"],
                             src_annotation.info["name"],
                         )
-                    case constants.PDF_ANNOT_FILE_ATTACHMENT:
+                    case AnnotType.PDF_ANNOT_FILE_ATTACHMENT:
                         try:
                             src_filename = src_annotation.file_info["filename"]
                         except Exception:
@@ -42,7 +42,7 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
                             src_annotation.file_info["description"],
                             src_annotation.info["name"],
                         )
-                    case constants.PDF_ANNOT_FREE_TEXT:
+                    case AnnotType.PDF_ANNOT_FREE_TEXT:
                         free_text_info = extract_font_info(src, src_annotation)
                         dst_annotation = dst_page.add_freetext_annot(
                             src_annotation.rect,
@@ -67,7 +67,7 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
                     case _:
                         # should print a warning or log here
                         warnings.warn(
-                            f"Unsupported annotation type {annotation_type} on page {page_num + 1}. Skipping."
+                            f"Unsupported annotation type {AnnotType(annotation_type).name} on page {page_num + 1}. Skipping."
                         )
                         continue
             except Exception as e:
@@ -167,7 +167,7 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             dst_annotation.set_border(src_annotation.border)
             if src_annotation.blendmode is not None:
                 dst_annotation.set_blendmode(src_annotation.blendmode)
-            if annotation_type != constants.PDF_ANNOT_FREE_TEXT:
+            if annotation_type != AnnotType.PDF_ANNOT_FREE_TEXT:
                 dst_annotation.set_colors(src_annotation.colors)
             dst_annotation.set_flags(src_annotation.flags)
             if src_annotation.irt_xref != 0:
