@@ -1,3 +1,4 @@
+import warnings
 import pymupdf
 
 from .annotations_fonts import extract_font_info
@@ -18,49 +19,60 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             annotation_type = src_annotation.type[0]
 
             dst_annotation: pymupdf.Annot
-            match annotation_type:
-                case constants.PDF_ANNOT_CARET:
-                    dst_annotation = dst_page.add_caret_annot(src_annotation.rect.tl)
-                case constants.PDF_ANNOT_TEXT:
-                    dst_annotation = dst_page.add_text_annot(
-                        src_annotation.rect.tl,
-                        src_annotation.info["content"],
-                        src_annotation.info["name"],
-                    )
-                case constants.PDF_ANNOT_FILE_ATTACHMENT:
-                    src_filename = src_annotation.file_info["filename"]
-                    dst_annotation = dst_page.add_file_annot(
-                        src_annotation.rect.tl,
-                        src_annotation.get_file(),
-                        src_filename,
-                        src_annotation.file_info.get("ufilename", src_filename),
-                        src_annotation.file_info["description"],
-                        src_annotation.info["name"],
-                    )
-                case constants.PDF_ANNOT_FREE_TEXT:
-                    free_text_info = extract_font_info(src, src_annotation)
-                    dst_annotation = dst_page.add_freetext_annot(
-                        src_annotation.rect,
-                        free_text_info.text,
-                        
-                        fontsize=free_text_info.font_size,
-                        fontname=free_text_info.font_name,
-                        text_color=free_text_info.text_color,
-                        fill_color=free_text_info.fill_color,
-                        border_color=free_text_info.border_color,
-                        border_width=free_text_info.border_width,
-                        dashes=free_text_info.dashes,
-                        callout=free_text_info.callout,
-                        line_end=free_text_info.line_end,
-                        opacity=free_text_info.opacity,
-                        align=free_text_info.align,
-                        rotate=free_text_info.rotate,
-                        richtext=free_text_info.richtext,
-                    )
+            try:
+                match annotation_type:
+                    case constants.PDF_ANNOT_CARET:
+                        dst_annotation = dst_page.add_caret_annot(src_annotation.rect.tl)
+                    case constants.PDF_ANNOT_TEXT:
+                        dst_annotation = dst_page.add_text_annot(
+                            src_annotation.rect.tl,
+                            src_annotation.info["content"],
+                            src_annotation.info["name"],
+                        )
+                    case constants.PDF_ANNOT_FILE_ATTACHMENT:
+                        try:
+                            src_filename = src_annotation.file_info["filename"]
+                        except Exception:
+                            src_filename = "attachment"
+                        dst_annotation = dst_page.add_file_annot(
+                            src_annotation.rect.tl,
+                            src_annotation.get_file(),
+                            src_filename,
+                            src_annotation.file_info.get("ufilename", src_filename),
+                            src_annotation.file_info["description"],
+                            src_annotation.info["name"],
+                        )
+                    case constants.PDF_ANNOT_FREE_TEXT:
+                        free_text_info = extract_font_info(src, src_annotation)
+                        dst_annotation = dst_page.add_freetext_annot(
+                            src_annotation.rect,
+                            free_text_info.text,
+                            
+                            fontsize=free_text_info.font_size,
+                            fontname=free_text_info.font_name,
+                            text_color=free_text_info.text_color,
+                            fill_color=free_text_info.fill_color,
+                            border_color=free_text_info.border_color,
+                            border_width=free_text_info.border_width,
+                            dashes=free_text_info.dashes,
+                            callout=free_text_info.callout,
+                            line_end=free_text_info.line_end,
+                            opacity=free_text_info.opacity,
+                            align=free_text_info.align,
+                            rotate=free_text_info.rotate,
+                            richtext=free_text_info.richtext,
+                            style=free_text_info.style,
+                        )
 
-                case _:
-                    # should print a warning or log here
-                    continue
+                    case _:
+                        # should print a warning or log here
+                        warnings.warn(
+                            f"Unsupported annotation type {annotation_type} on page {page_num + 1}. Skipping."
+                        )
+                        continue
+            except Exception as e:
+                warnings.warn(f"Error copying annotation on page {page_num + 1}: {e}")
+                continue
 
             # elif a_type == PDF_ANNOT_LINE:
             #     # add_line_annot(p1, p2)
@@ -148,9 +160,7 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             #     # form‐field widgets are complex; skip or handle separately
             #     continue
 
-            # else:
-            #     # skip unsupported types
-            #     continue
+              
             xref_map[src_annotation.xref] = dst_annotation.xref
 
             dst_annotation.set_info(src_annotation.info)
