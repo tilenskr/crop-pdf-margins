@@ -5,7 +5,7 @@ description = "Flexible tool for removing margins from PDFs to improve readabili
 authors = [
     {name = "tilenskr", email = "skrinjar.tilen@gmail.com"},
 ]
-dependencies = ["pymupdf>=1.25.2", "pytesseract>=0.3.13", "tqdm>=4.67.1"]
+dependencies = ["pymupdf>=1.25.2", "pytesseract>=0.3.13", "tqdm>=4.67.1", "beautifulsoup4>=4.13.4", "lxml>=6.0.0"]
 requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "MIT"}

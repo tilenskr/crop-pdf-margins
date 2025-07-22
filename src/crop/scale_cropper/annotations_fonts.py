@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import re
 from typing import Literal, Optional
+from bs4 import BeautifulSoup, Tag
 import pymupdf
 
 
@@ -58,6 +59,9 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
         text_info.border_color = annotation.colors["stroke"]
         text_info.richtext = True
         text_info.text = rich_text_info[1]
+        rich_text_parser = RichTextStyleParser(rich_text_info[1])
+        rich_text_style = rich_text_parser.parse_rc_styles()
+        set_text_style_to_free_text_info(rich_text_style, text_info)
         return text_info
 
     text_info.text = annotation.info["content"]
@@ -67,7 +71,7 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
     )
 
     if text_style_ds.are_all_values_set():
-        set_text_style_free_text_info(text_style_ds, text_info)
+        set_text_style_to_free_text_info(text_style_ds, text_info)
         return text_info
 
     text_style_da_and_q = extract_text_style_from_da_and_quadding(
@@ -75,7 +79,7 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
         doc.xref_get_key(annotation.xref, "Q")[1],
     )
     merged_style = merge_two_text_styles(text_style_da_and_q, text_style_ds)
-    set_text_style_free_text_info(merged_style, text_info)
+    set_text_style_to_free_text_info(merged_style, text_info)
     return text_info
 
 
@@ -106,7 +110,7 @@ def extract_text_style_from_display_style(display_text: str) -> TextStyle:
     return text_style
 
 
-def set_text_style_free_text_info(text_style: TextStyle, text_info: FreeTextInfo):
+def set_text_style_to_free_text_info(text_style: TextStyle, text_info: FreeTextInfo):
     text_info.font_name = text_style.font_name
     text_info.font_size = text_style.font_size
     text_info.text_color = text_style.text_color
@@ -178,9 +182,52 @@ def merge_two_text_styles(first: TextStyle, second: TextStyle) -> TextStyle:
 
     if first.align != -1:
         merged.align = first.align
-    elif second.font_size != -1:
+    elif second.align != -1:
         merged.align = second.align
     else:
         merged.align = 0
 
     return merged
+
+
+class RichTextStyleParser:
+
+    def __init__(self, text: str):
+        self._text = text
+
+    def parse_rc_styles(self) -> TextStyle:
+        soup = BeautifulSoup(self._text, "xml")
+
+        body = soup.find("body")
+        text_style = TextStyle()
+
+        if isinstance(body, Tag) and "style" in body.attrs:
+            body_style = str(body["style"])
+            # Font size
+            font_size_match = re.search(
+                r"font-size\s*:\s*(\d+(?:\.\d+)?)pt", body_style
+            )
+            if font_size_match:
+                text_style.font_size = float(font_size_match.group(1))
+
+            # Text alignment
+            align_match = re.search(r"text-align\s*:\s*(left|center|right)", body_style)
+            if align_match:
+                align_str = align_match.group(1)
+                text_style.align = {"left": 0, "center": 1, "right": 2}[align_str]
+
+            # Font name
+            font_match = re.search(r"font-family\s*:\s*([^;]+)", body_style)
+            if font_match:
+                text_style.font_name = font_match.group(1).strip()
+
+            # Text color (outer <body>)
+            color_match = re.search(r"color\s*:\s*#([0-9a-fA-F]{6})", body_style)
+            if color_match:
+                text_style.text_color = self._hex_to_rgb_tuple(color_match.group(1))
+
+        return text_style
+
+    @staticmethod
+    def _hex_to_rgb_tuple(hex_color: str) -> list[float]:
+        return list(int(hex_color[i : i + 2], 16) / 255 for i in (0, 2, 4))

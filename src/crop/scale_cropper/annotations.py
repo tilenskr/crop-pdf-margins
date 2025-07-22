@@ -61,7 +61,6 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
                             align=free_text_info.align,
                             rotate=free_text_info.rotate,
                             richtext=free_text_info.richtext,
-                            style=free_text_info.style,
                         )
 
                     case _:
@@ -71,7 +70,7 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
                         )
                         continue
             except Exception as e:
-                warnings.warn(f"Error copying annotation on page {page_num + 1}: {e}")
+                warnings.warn(f"Error copying annotation ({AnnotType(annotation_type).name}) on page {page_num + 1}: {e}")
                 continue
 
             # elif a_type == PDF_ANNOT_LINE:
