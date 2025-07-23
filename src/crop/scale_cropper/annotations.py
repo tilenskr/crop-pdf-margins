@@ -94,24 +94,20 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
                 src_annotation.file_info["description"],
                 src_annotation.info["name"],
             )
-
+        case AnnotType.PDF_ANNOT_INK:
+            return dst_page.add_ink_annot(src_annotation.vertices or [])
+        case AnnotType.PDF_ANNOT_LINE:
+                if src_annotation.vertices is None:
+                    warnings.warn("Line annotation has no vertices, skipping.")
+                    return None
+                return dst_page.add_line_annot(src_annotation.vertices[0], src_annotation.vertices[1])
+        case AnnotType.PDF_ANNOT_SQUARE:
+             return dst_page.add_rect_annot(src_annotation.rect)
+        case AnnotType.PDF_ANNOT_CIRCLE:
+            return dst_page.add_rect_annot(src_annotation.rect)
         case _:
             return None
         
-
-           # elif a_type == PDF_ANNOT_LINE:
-            #     # add_line_annot(p1, p2)
-            #     p1, p2 = verts[0], verts[-1] if verts else (r.tl, r.br)
-            #     dst_annotation = dst_page.add_line_annot(p1, p2)
-
-            # elif a_type == PDF_ANNOT_SQUARE:
-            #     # add_rect_annot(rect)
-            #     dst_annotation = dst_page.add_rect_annot(r)
-
-            # elif a_type == PDF_ANNOT_CIRCLE:
-            #     # add_circle_annot(rect)
-            #     dst_annotation = dst_page.add_circle_annot(r)
-
             # elif a_type == PDF_ANNOT_POLYGON:
             #     # add_polygon_annot(points)
             #     dst_annotation = dst_page.add_polygon_annot(verts or [])
