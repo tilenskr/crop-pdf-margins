@@ -105,17 +105,16 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
              return dst_page.add_rect_annot(src_annotation.rect)
         case AnnotType.PDF_ANNOT_CIRCLE:
             return dst_page.add_rect_annot(src_annotation.rect)
+        case AnnotType.PDF_ANNOT_REDACT:
+            return None
+        case AnnotType.PDF_ANNOT_POLY_LINE:
+            return dst_page.add_polyline_annot(src_annotation.vertices or [])
+        case AnnotType.PDF_ANNOT_POLYGON:
+            return dst_page.add_polygon_annot(src_annotation.vertices or [])
         case _:
             return None
         
-            # elif a_type == PDF_ANNOT_POLYGON:
-            #     # add_polygon_annot(points)
-            #     dst_annotation = dst_page.add_polygon_annot(verts or [])
-
-            # elif a_type == PDF_ANNOT_POLY_LINE:
-            #     # add_polyline_annot(points)
-            #     dst_annotation = dst_page.add_polyline_annot(verts or [])
-
+ 
             # elif a_type == PDF_ANNOT_HIGHLIGHT:
             #     # add_highlight_annot(quads)
             #     quads = getattr(src_annotation, "quads", None) or [r]
