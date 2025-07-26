@@ -1,10 +1,18 @@
-from typing import Optional
-import warnings
+from dataclasses import dataclass
+import logging
+from typing import Callable, Optional
 import pymupdf
 
 from .annotations_fonts import extract_font_info
 
-from .constants import AnnotType 
+from .constants import AnnotType
+
+
+@dataclass(frozen=True)
+class AnnotationInfo:
+    type: AnnotType
+    page_num: int
+    vertices: Optional[list[float]]
 
 
 def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
@@ -20,12 +28,18 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             annotation_type = AnnotType(src_annotation.type[0])
 
             try:
-                dst_annotation = get_annotation(src, src_annotation, annotation_type, dst_page)
+                dst_annotation = get_annotation(
+                    src, src_annotation, annotation_type, dst_page
+                )
                 if not dst_annotation:
-                    warnings.warn(f"Unsupported annotation type ({annotation_type.name}) on page {page_num + 1}. Skipping.")
+                    logging.warning(
+                        f"Unsupported annotation type ({annotation_type.name}) on page {page_num + 1}. Skipping."
+                    )
                     continue
             except Exception as e:
-                warnings.warn(f"Error copying annotation ({annotation_type.name}) on page {page_num + 1}: {e}")
+                logging.error(
+                    f"Error copying annotation ({annotation_type.name}) on page {page_num + 1}: {e}"
+                )
                 continue
 
             xref_map[src_annotation.xref] = dst_annotation.xref
@@ -40,7 +54,9 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             if src_annotation.irt_xref != 0:
                 dst_annotation.set_irt_xref(xref_map[src_annotation.irt_xref])
             if src_annotation.line_ends is not None:
-                dst_annotation.set_line_ends(src_annotation.line_ends[0], src_annotation.line_ends[1])
+                dst_annotation.set_line_ends(
+                    src_annotation.line_ends[0], src_annotation.line_ends[1]
+                )
             dst_annotation.set_name(src_annotation.info["name"])
             dst_annotation.set_oc(src_annotation.get_oc())
             dst_annotation.set_opacity(src_annotation.opacity)
@@ -50,8 +66,14 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             dst_annotation.set_rotation(src_annotation.rotation)
             dst_annotation.update()
 
-def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot, 
-                   annotation_type: AnnotType, dst_page: pymupdf.Page) -> Optional[pymupdf.Annot]:
+
+def get_annotation(
+    src_document: pymupdf.Document,
+    src_annotation: pymupdf.Annot,
+    annotation_type: AnnotType,
+    dst_page: pymupdf.Page,
+) -> Optional[pymupdf.Annot]:
+    assert dst_page.number is not None
     match annotation_type:
         case AnnotType.PDF_ANNOT_CARET:
             return dst_page.add_caret_annot(src_annotation.rect.tl)
@@ -66,7 +88,6 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
             return dst_page.add_freetext_annot(
                 src_annotation.rect,
                 free_text_info.text,
-                
                 fontsize=free_text_info.font_size,
                 fontname=free_text_info.font_name,
                 text_color=free_text_info.text_color,
@@ -95,47 +116,29 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
                 src_annotation.info["name"],
             )
         case AnnotType.PDF_ANNOT_INK:
-            return dst_page.add_ink_annot(src_annotation.vertices or [])
+            return get_annotation_with_vertices(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_ink_annot,
+            )
         case AnnotType.PDF_ANNOT_LINE:
-                if src_annotation.vertices is None:
-                    warnings.warn("Line annotation has no vertices, skipping.")
-                    return None
-                return dst_page.add_line_annot(src_annotation.vertices[0], src_annotation.vertices[1])
+            if (
+                vertices := get_valid_vertices(
+                    AnnotationInfo(
+                        annotation_type,
+                        dst_page.number,
+                        src_annotation.vertices,
+                    )
+                )
+            ) is None:
+                return None
+            return dst_page.add_line_annot(vertices[0], vertices[1])
         case AnnotType.PDF_ANNOT_SQUARE:
-             return dst_page.add_rect_annot(src_annotation.rect)
+            return dst_page.add_rect_annot(src_annotation.rect)
         case AnnotType.PDF_ANNOT_CIRCLE:
             return dst_page.add_rect_annot(src_annotation.rect)
         case AnnotType.PDF_ANNOT_REDACT:
-            return None
-        case AnnotType.PDF_ANNOT_POLY_LINE:
-            return dst_page.add_polyline_annot(src_annotation.vertices or [])
-        case AnnotType.PDF_ANNOT_POLYGON:
-            return dst_page.add_polygon_annot(src_annotation.vertices or [])
-        case _:
-            return None
-        
- 
-            # elif a_type == PDF_ANNOT_HIGHLIGHT:
-            #     # add_highlight_annot(quads)
-            #     quads = getattr(src_annotation, "quads", None) or [r]
-            #     dst_annotation = dst_page.add_highlight_annot(quads)
-
-            # elif a_type == PDF_ANNOT_UNDERLINE:
-            #     # add_underline_annot(quads)
-            #     quads = getattr(src_annotation, "quads", None) or [r]
-            #     dst_annotation = dst_page.add_underline_annot(quads)
-
-            # elif a_type == PDF_ANNOT_SQUIGGLY:
-            #     # add_squiggly_annot(quads)
-            #     quads = getattr(src_annotation, "quads", None) or [r]
-            #     dst_annotation = dst_page.add_squiggly_annot(quads)
-
-            # elif a_type == PDF_ANNOT_STRIKE_OUT:
-            #     # add_strikeout_annot(quads)
-            #     quads = getattr(src_annotation, "quads", None) or [r]
-            #     dst_annotation = dst_page.add_strikeout_annot(quads)
-
-            # elif a_type == PDF_ANNOT_REDACT:
             #     # add_redact_annot(quad, …)
             #     quad = getattr(src_annotation, "quad_points", r)
             #     dst_annotation = dst_page.add_redact_annot(
@@ -148,34 +151,85 @@ def get_annotation(src_document: pymupdf.Document, src_annotation: pymupdf.Annot
             #         text_color=colors.get("stroke", (0,0,0)),
             #         cross_out=src_annotation.set_info.get("cross_out", True),
             #     )
+            return None
+        case AnnotType.PDF_ANNOT_POLY_LINE:
+            return get_annotation_with_vertices(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_polyline_annot,
+            )
+        case AnnotType.PDF_ANNOT_POLYGON:
+            return get_annotation_with_vertices(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_polygon_annot,
+            )
+        case AnnotType.PDF_ANNOT_UNDERLINE:
+            return get_annotation_with_quads(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_underline_annot,
+            )
+        case AnnotType.PDF_ANNOT_STRIKE_OUT:
+            return get_annotation_with_quads(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_strikeout_annot,
+            )
+        case AnnotType.PDF_ANNOT_SQUIGGLY:
+            return get_annotation_with_quads(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_squiggly_annot,
+            )
+        case AnnotType.PDF_ANNOT_HIGHLIGHT:
+            return get_annotation_with_quads(
+                AnnotationInfo(
+                    annotation_type, dst_page.number, src_annotation.vertices
+                ),
+                dst_page.add_highlight_annot,
+            )
+        case _:
+            return None
 
-            # elif a_type == PDF_ANNOT_STAMP:
-            #     # add_stamp_annot(rect, stamp=0)
-            #     stamp = getattr(src_annotation, "stamp", 0)
-            #     dst_annotation = dst_page.add_stamp_annot(r, stamp=stamp)
 
-            # elif a_type == PDF_ANNOT_FILE_ATTACHMENT:
-            #     # add_file_annot(pos, buffer, filename, ufilename=None, desc=None, icon='PushPin')
-            #     fname = src_annotation.set_info.get("filename", "attachment")
-            #     data  = src_page.parent.embfile_get(fname)
-            #     dst_annotation = dst_page.add_file_annot(r.tl, data, filename=fname,
-            #                                 ufilename=src_annotation.set_info.get("ufilename"),
-            #                                 desc=src_annotation.set_info.get("desc"),
-            #                                 icon=src_annotation.set_info.get("icon", "PushPin"))
+def get_annotation_with_vertices(
+    annotation_info: AnnotationInfo,
+    add_annotation: Callable[[list[float]], pymupdf.Annot],
+) -> Optional[pymupdf.Annot]:
+    if (vertices := get_valid_vertices(annotation_info)) is None:
+        return None
+    return add_annotation(vertices)
 
-            # elif a_type == PDF_ANNOT_INK:
-            #     # add_ink_annot(list_of_point_lists)
-            #     dst_annotation = dst_page.add_ink_annot(verts or [])
 
-            # elif a_type == PDF_ANNOT_POPUP:
-            #     # add_popup_annot(rect)
-            #     dst_annotation = dst_page.add_popup_annot(r)
+def get_valid_vertices(info: AnnotationInfo) -> Optional[list[float]]:
+    if info.vertices is None:
+        logging.error(
+            f"{info.type} on page {info.page_num} annotation has no vertices, skipping."
+        )
+        return None
+    return info.vertices
 
-            # elif a_type == PDF_ANNOT_LINK:
-            #     # add_link(rect=..., uri=..., dest=...)
-            #     dst_annotation = dst_page.add_link(rect=r, uri=getattr(src_annotation, "uri", None),
-            #                             dest=getattr(src_annotation, "dest", None))
 
-            # elif a_type == PDF_ANNOT_WIDGET:
-            #     # form‐field widgets are complex; skip or handle separately
-            #     continue
+def get_annotation_with_quads(
+    annotation_info: AnnotationInfo,
+    add_annotation: Callable[[list[list[float]]], pymupdf.Annot],
+) -> Optional[pymupdf.Annot]:
+    if (vertices := get_valid_vertices(annotation_info)) is None:
+        return None
+    quads = [vertices[i : i + 4] for i in range(0, len(vertices), 4)]
+    # quads = [
+    #     [x for point in vertices[i:i+4] for x in point]
+    #     for i in range(0, len(vertices), 4)
+    # ]
+    return add_annotation(quads)
+
+    # elif a_type == PDF_ANNOT_STAMP:
+    #     # add_stamp_annot(rect, stamp=0)
+    #     stamp = getattr(src_annotation, "stamp", 0)
+    #     dst_annotation = dst_page.add_stamp_annot(r, stamp=stamp)
