@@ -57,8 +57,8 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
 
     if rich_text_info[0] != "null":
         text_info.border_color = annotation.colors["stroke"]
-        text_info.richtext = True
-        text_info.text = rich_text_info[1]
+        text_info.richtext = False
+        text_info.text = annotation.info["content"]
         rich_text_parser = RichTextStyleParser(rich_text_info[1])
         rich_text_style = rich_text_parser.parse_rc_styles()
         set_text_style_to_free_text_info(rich_text_style, text_info)
