@@ -7,6 +7,17 @@ from .annotations_fonts import extract_font_info
 
 from .constants import AnnotType
 
+ANNOT_TYPES_WITHOUT_RECT_PROPERTY = {
+    AnnotType.PDF_ANNOT_INK,
+    AnnotType.PDF_ANNOT_LINE,
+    AnnotType.PDF_ANNOT_POLY_LINE,  # Not tested, because is not available in Adobe Acrobat Reader free version
+    AnnotType.PDF_ANNOT_POLYGON,
+    AnnotType.PDF_ANNOT_UNDERLINE,
+    AnnotType.PDF_ANNOT_STRIKE_OUT,
+    AnnotType.PDF_ANNOT_SQUIGGLY,  # Not tested, because is not available in Adobe Acrobat Reader free version
+    AnnotType.PDF_ANNOT_HIGHLIGHT,
+}
+
 
 @dataclass(frozen=True)
 class AnnotationInfo:
@@ -45,7 +56,8 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             xref_map[src_annotation.xref] = dst_annotation.xref
 
             dst_annotation.set_info(src_annotation.info)
-            dst_annotation.set_border(src_annotation.border)
+            if dst_annotation.border:
+                dst_annotation.set_border(src_annotation.border)
             if src_annotation.blendmode is not None:
                 dst_annotation.set_blendmode(src_annotation.blendmode)
             if annotation_type != AnnotType.PDF_ANNOT_FREE_TEXT:
@@ -62,7 +74,8 @@ def copy_annotations(src: pymupdf.Document, dst: pymupdf.Document):
             dst_annotation.set_opacity(src_annotation.opacity)
             dst_annotation.set_open(src_annotation.is_open)
             dst_annotation.set_popup(src_annotation.popup_rect)
-            dst_annotation.set_rect(src_annotation.rect)
+            if annotation_type not in ANNOT_TYPES_WITHOUT_RECT_PROPERTY:
+                dst_annotation.set_rect(src_annotation.rect)
             dst_annotation.set_rotation(src_annotation.rotation)
             dst_annotation.update()
 
@@ -137,7 +150,7 @@ def get_annotation(
         case AnnotType.PDF_ANNOT_SQUARE:
             return dst_page.add_rect_annot(src_annotation.rect)
         case AnnotType.PDF_ANNOT_CIRCLE:
-            return dst_page.add_rect_annot(src_annotation.rect)
+            return dst_page.add_circle_annot(src_annotation.rect)
         case AnnotType.PDF_ANNOT_REDACT:
             #     # add_redact_annot(quad, …)
             #     quad = getattr(src_annotation, "quad_points", r)
@@ -218,16 +231,13 @@ def get_valid_vertices(info: AnnotationInfo) -> Optional[list[float]]:
 
 def get_annotation_with_quads(
     annotation_info: AnnotationInfo,
-    add_annotation: Callable[[list[list[float]]], pymupdf.Annot],
+    add_annotation: Callable[[list[pymupdf.Quad]], pymupdf.Annot],
 ) -> Optional[pymupdf.Annot]:
     if (vertices := get_valid_vertices(annotation_info)) is None:
         return None
     quads = [vertices[i : i + 4] for i in range(0, len(vertices), 4)]
-    # quads = [
-    #     [x for point in vertices[i:i+4] for x in point]
-    #     for i in range(0, len(vertices), 4)
-    # ]
-    return add_annotation(quads)
+    pymupdf_quads = [pymupdf.Quad(quad) for quad in quads]
+    return add_annotation(pymupdf_quads)
 
     # elif a_type == PDF_ANNOT_STAMP:
     #     # add_stamp_annot(rect, stamp=0)
