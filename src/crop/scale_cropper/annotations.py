@@ -19,7 +19,7 @@ ANNOT_TYPES_WITHOUT_RECT_PROPERTY = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AnnotationInfo:
     type: AnnotType
     page_num: int
@@ -207,6 +207,11 @@ def get_annotation(
                 ),
                 dst_page.add_highlight_annot,
             )
+        case AnnotType.PDF_ANNOT_STAMP:
+                # m = pymupdf.Matrix(1, 1)
+                # pix = src_document[dst_page.number].get_pixmap(clip=src_annotation.rect, matrix=m, alpha=True)
+                pix = src_annotation.get_pixmap(alpha=True)
+                return dst_page.add_stamp_annot(src_annotation.rect, stamp=pix)
         case _:
             return None
 
@@ -238,8 +243,3 @@ def get_annotation_with_quads(
     quads = [vertices[i : i + 4] for i in range(0, len(vertices), 4)]
     pymupdf_quads = [pymupdf.Quad(quad) for quad in quads]
     return add_annotation(pymupdf_quads)
-
-    # elif a_type == PDF_ANNOT_STAMP:
-    #     # add_stamp_annot(rect, stamp=0)
-    #     stamp = getattr(src_annotation, "stamp", 0)
-    #     dst_annotation = dst_page.add_stamp_annot(r, stamp=stamp)
