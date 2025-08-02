@@ -3,7 +3,7 @@ import logging
 from typing import Callable, Optional
 import pymupdf
 
-from .annotations_fonts import extract_font_info
+from .annotations_fonts import extract_font_info, extract_text_style_from_appearance
 
 from .constants import AnnotType
 
@@ -152,19 +152,19 @@ def get_annotation(
         case AnnotType.PDF_ANNOT_CIRCLE:
             return dst_page.add_circle_annot(src_annotation.rect)
         case AnnotType.PDF_ANNOT_REDACT:
-            #     # add_redact_annot(quad, …)
-            #     quad = getattr(src_annotation, "quad_points", r)
-            #     dst_annotation = dst_page.add_redact_annot(
-            #         quad,
-            #         text=content,
-            #         fontname=src_annotation.set_info.get("fontname", None),
-            #         fontsize=src_annotation.set_info.get("fontsize", 11),
-            #         align=src_annotation.set_info.get("align", TEXT_ALIGN_LEFT),
-            #         fill=colors.get("fill", (1,1,1)),
-            #         text_color=colors.get("stroke", (0,0,0)),
-            #         cross_out=src_annotation.set_info.get("cross_out", True),
-            #     )
-            return None
+            text_style = extract_text_style_from_appearance(
+                src_document, src_annotation
+            )
+            return dst_page.add_redact_annot(
+                quad=src_annotation.vertices,
+                text=src_annotation.info["content"],
+                fontname=text_style.font_name,
+                fontsize=text_style.font_size,
+                align=text_style.align,
+                fill=src_annotation.colors["fill"],
+                text_color=text_style.text_color,
+                cross_out=True #  Most viewers’ defaults show the X
+            )
         case AnnotType.PDF_ANNOT_POLY_LINE:
             return get_annotation_with_vertices(
                 AnnotationInfo(
@@ -208,10 +208,10 @@ def get_annotation(
                 dst_page.add_highlight_annot,
             )
         case AnnotType.PDF_ANNOT_STAMP:
-                # m = pymupdf.Matrix(1, 1)
-                # pix = src_document[dst_page.number].get_pixmap(clip=src_annotation.rect, matrix=m, alpha=True)
-                pix = src_annotation.get_pixmap(alpha=True)
-                return dst_page.add_stamp_annot(src_annotation.rect, stamp=pix)
+            # m = pymupdf.Matrix(1, 1)
+            # pix = src_document[dst_page.number].get_pixmap(clip=src_annotation.rect, matrix=m, alpha=True)
+            pix = src_annotation.get_pixmap(alpha=True)
+            return dst_page.add_stamp_annot(src_annotation.rect, stamp=pix)
         case _:
             return None
 
@@ -240,6 +240,10 @@ def get_annotation_with_quads(
 ) -> Optional[pymupdf.Annot]:
     if (vertices := get_valid_vertices(annotation_info)) is None:
         return None
-    quads = [vertices[i : i + 4] for i in range(0, len(vertices), 4)]
-    pymupdf_quads = [pymupdf.Quad(quad) for quad in quads]
+    pymupdf_quads = get_quads(vertices)
     return add_annotation(pymupdf_quads)
+
+
+def get_quads(vertices: list[float]) -> list[pymupdf.Quad]:
+    quads = [vertices[i : i + 4] for i in range(0, len(vertices), 4)]
+    return [pymupdf.Quad(quad) for quad in quads]

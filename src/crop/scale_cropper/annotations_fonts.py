@@ -74,10 +74,8 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
         set_text_style_to_free_text_info(text_style_ds, text_info)
         return text_info
 
-    text_style_da_and_q = extract_text_style_from_da_and_quadding(
-        doc.xref_get_key(annotation.xref, "DA")[1],
-        doc.xref_get_key(annotation.xref, "Q")[1],
-    )
+    text_style_da_and_q = extract_text_style_from_appearance(doc, annotation)
+
     merged_style = merge_two_text_styles(text_style_da_and_q, text_style_ds)
     set_text_style_to_free_text_info(merged_style, text_info)
     return text_info
@@ -115,6 +113,15 @@ def set_text_style_to_free_text_info(text_style: TextStyle, text_info: FreeTextI
     text_info.font_size = text_style.font_size
     text_info.text_color = text_style.text_color
     text_info.align = text_style.align
+
+
+def extract_text_style_from_appearance(
+    doc: pymupdf.Document, annotation: pymupdf.Annot
+) -> TextStyle:
+    return extract_text_style_from_da_and_quadding(
+        doc.xref_get_key(annotation.xref, "DA")[1],
+        doc.xref_get_key(annotation.xref, "Q")[1],
+    )
 
 
 def extract_text_style_from_da_and_quadding(da: str, quadding: str) -> TextStyle:
