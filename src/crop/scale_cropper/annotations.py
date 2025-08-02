@@ -208,10 +208,8 @@ def get_annotation(
                 dst_page.add_highlight_annot,
             )
         case AnnotType.PDF_ANNOT_STAMP:
-            # m = pymupdf.Matrix(1, 1)
-            # pix = src_document[dst_page.number].get_pixmap(clip=src_annotation.rect, matrix=m, alpha=True)
             pix = src_annotation.get_pixmap(alpha=True)
-            return dst_page.add_stamp_annot(src_annotation.rect, stamp=pix)
+            return dst_page.add_stamp_annot(src_annotation.rect, stamp=pix) # type: ignore[arg-type]
         case _:
             return None
 
