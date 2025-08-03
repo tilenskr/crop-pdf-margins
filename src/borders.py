@@ -8,7 +8,7 @@ class BorderUnit(Enum):
     RATIO = auto()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BorderSpec:
     value: float
     unit: BorderUnit

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Tag
 import pymupdf
 
 
-@dataclass
+@dataclass(slots=True)
 class TextStyle:
     font_name: Optional[str] = None  # Ignored if richtext=True
     font_size: float = -1  # Ignored if richtext=True
@@ -22,7 +22,7 @@ class TextStyle:
         )
 
 
-@dataclass
+@dataclass(slots=True)
 class FreeTextInfo(TextStyle):
     text: str = (
         ""  # If richtext=True (see below), the string is interpreted as HTML syntax.
