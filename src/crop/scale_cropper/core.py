@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import warnings
 from typing import override
 
@@ -9,7 +10,7 @@ from .annotations import copy_annotations
 
 class ScaleCropper(Cropper):
     @override
-    def crop(self, bounds: list[pymupdf.Rect]) -> pymupdf.Document:
+    def crop(self, bounds: Sequence[pymupdf.Rect]) -> pymupdf.Document:
         output_doc: pymupdf.Document = pymupdf.open()
         for page_num, clipped_rect in enumerate(bounds):
             src_page = self._doc[page_num]

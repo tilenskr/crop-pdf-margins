@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import override
 
 import pymupdf
@@ -10,7 +11,7 @@ class BoxCropper(Cropper):
     without scaling the content."""
 
     @override
-    def crop(self, bounds: list[pymupdf.Rect]) -> pymupdf.Document:
+    def crop(self, bounds: Sequence[pymupdf.Rect]) -> pymupdf.Document:
         for page_index, rect in enumerate(bounds):
             page = self._doc[page_index]
             page.set_cropbox(rect)
