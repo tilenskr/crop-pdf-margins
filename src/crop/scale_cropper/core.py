@@ -24,16 +24,18 @@ class ScaleCropper(Cropper):
                 page_num,
                 clip=clipped_rect,
             )
-        self._copy_properties(output_doc)
+        self._copy_properties(bounds, output_doc)
         return output_doc
 
-    def _copy_properties(self, dst: pymupdf.Document):
+    def _copy_properties(
+        self, page_bounds: Sequence[pymupdf.Rect], dst: pymupdf.Document
+    ):
         self._copy_metadata(dst)
         self._copy_page_labels(dst)
         self._copy_table_of_contents(dst)
         self._copy_attachments(dst)
         self._copy_optional_content_groups(dst)
-        copy_annotations(self._doc, dst)
+        copy_annotations(self._doc,page_bounds, dst)
 
     def _copy_metadata(self, dst: pymupdf.Document):
         """Copy basic metadata (Title, Author, etc.)."""

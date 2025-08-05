@@ -31,7 +31,6 @@ class FreeTextInfo(TextStyle):
     border_color: Optional[list[float]] = None  # Only has effect if richtext=True
     border_width: float = 0
     dashes: Optional[list[float]] = None
-    callout: Optional[list[float]] = None
     line_end: int = pymupdf.mupdf.PDF_ANNOT_LE_OPEN_ARROW
     opacity: float = 1
     rotate: int = 0
@@ -46,7 +45,6 @@ def extract_font_info(doc: pymupdf.Document, annotation: pymupdf.Annot) -> FreeT
         annotation.border["width"] if annotation.border["width"] >= 0 else 0
     )
     text_info.dashes = annotation.border["dashes"]
-    text_info.callout = annotation.vertices
     if annotation.line_ends:
         text_info.line_end = annotation.line_ends[0]
     if annotation.opacity != -1:
