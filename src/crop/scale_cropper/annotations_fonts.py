@@ -219,7 +219,7 @@ class RichTextStyleParser:
             align_match = re.search(r"text-align\s*:\s*(left|center|right)", body_style)
             if align_match:
                 align_str = align_match.group(1)
-                text_style.align = {"left": 0, "center": 1, "right": 2}[align_str]
+                text_style.align = {"left": 0, "center": 1, "right": 2}.get(align_str, -1)
 
             # Font name
             font_match = re.search(r"font-family\s*:\s*([^;]+)", body_style)
