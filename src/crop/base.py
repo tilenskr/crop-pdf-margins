@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Sequence
 
 import pymupdf
 
@@ -8,5 +9,5 @@ class Cropper(ABC):
         self._doc = doc
 
     @abstractmethod
-    def crop(self, bounds: list[pymupdf.Rect]) -> pymupdf.Document:
+    def crop(self, bounds: Sequence[pymupdf.Rect]) -> pymupdf.Document:
         pass
