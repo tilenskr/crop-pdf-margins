@@ -40,28 +40,59 @@ class AnnotationContext:
 
 
 class CoordinateTransformer:
-    def __init__(self, page_bound: pymupdf.Rect, width: float, height: float):
+    def __init__(self, page_bound: pymupdf.Rect, width: float, height: float) -> None:
         self._page_bound = page_bound
         self._scale_x = width / page_bound.width
         self._scale_y = height / page_bound.height
 
+        # MuPDF scales uniformly with the *smaller* factor
+        s = min(self._scale_x, self._scale_y)
+        self._scale_x = self._scale_y = s
+        # centred letter-box margins
+        self._dx = (width - page_bound.width * s) / 2
+        self._dy = (height - page_bound.height * s) / 2
+
+    # -----------------------------------------------------------------
+    # public helpers ---------------------------------------------------
+    # -----------------------------------------------------------------
     def transform_point(self, x: float, y: float) -> tuple[float, float]:
-        # undo the translate, then apply the scale
-        new_x = (x - self._page_bound.x0) * self._scale_x
-        new_y = (y - self._page_bound.y0) * self._scale_y 
-        return new_x, new_y
+        """
+        Map (x, y) from the *source* coordinate space into the destination.
+        """
+        return (
+            self._dx + (x - self._page_bound.x0) * self._scale_x,
+            self._dy + (y - self._page_bound.y0) * self._scale_y,
+        )
 
     def transform_rect(self, rect: pymupdf.Rect) -> pymupdf.Rect:
         p0 = self.transform_point(rect.x0, rect.y0)
         p1 = self.transform_point(rect.x1, rect.y1)
         return pymupdf.Rect(p0, p1)
 
-    def transform_vertices(
-        self, vertices: Optional[Sequence[tuple[float, float]]]
-    ) -> Optional[list[tuple[float, float]]]:
+    def transform_vertices(self, vertices):
         if vertices is None:
             return None
-        return [self.transform_point(x, y) for x, y in vertices]
+        if not vertices:
+            return []
+
+        # list of Quads (text markup: highlight/underline/strikeout/squiggly)
+        if isinstance(vertices[0], pymupdf.Quad):
+            out = []
+            for q in vertices:
+                ul = self.transform_point(q.ul.x, q.ul.y)
+                ur = self.transform_point(q.ur.x, q.ur.y)
+                ll = self.transform_point(q.ll.x, q.ll.y)
+                lr = self.transform_point(q.lr.x, q.lr.y)
+                out.append(pymupdf.Quad([ul, ur, ll, lr]))
+            return out
+
+        # nested strokes (ink): [ [(x,y),...], [(x,y),...], ... ]
+        if isinstance(vertices[0], (list, tuple)) and vertices and isinstance(vertices[0][0], (list, tuple)):
+            return [self.transform_vertices(stroke) for stroke in vertices]
+
+        # list of points: [(x,y), (x,y), ...]
+        return [self.transform_point(float(x), float(y)) for (x, y) in vertices]
+
 
 
 def copy_annotations(
@@ -77,7 +108,7 @@ def copy_annotations(
             continue
 
         coordinate_transformer = CoordinateTransformer(
-            src_page_bounds[page_num], src_page.rect.width, src_page.rect.height
+            src_page_bounds[page_num], dst_page.rect.width, dst_page.rect.height
         )
 
         for src_annotation in src_page.annots():
@@ -107,15 +138,25 @@ def copy_annotations(
             xref_map[src_annotation.xref] = dst_annotation.xref
 
             dst_annotation.set_info(src_annotation.info)
-            if dst_annotation.border:
-                dst_annotation.set_border(src_annotation.border)
+            if dst_annotation.border:  # same check you already have
+                bw = dst_annotation.border["width"] * coordinate_transformer._scale_x
+                dst_annotation.set_border(width=bw, dashes=src_annotation.border["dashes"])
             if src_annotation.blendmode is not None:
                 dst_annotation.set_blendmode(src_annotation.blendmode)
             if annotation_type != AnnotType.PDF_ANNOT_FREE_TEXT:
                 dst_annotation.set_colors(src_annotation.colors)
             dst_annotation.set_flags(src_annotation.flags)
-            if src_annotation.irt_xref != 0:
-                dst_annotation.set_irt_xref(xref_map[src_annotation.irt_xref])
+            if src_annotation.irt_xref != 0:                                                                          
+                # Check if the referenced annotation's xref was successfully mapped
+                # Could be missing an attachment                                  
+                if src_annotation.irt_xref in xref_map:                                                               
+                    dst_annotation.set_irt_xref(xref_map[src_annotation.irt_xref])                                    
+                else:                                                                                                 
+                    logging.warning(                                                                                
+                        f"Annotation (type: {annotation_type.name}) on page {page_num + 1} "                          
+                        f"references an unmapped annotation with xref {src_annotation.irt_xref}. "                    
+                        "Skipping setting irt_xref."                                                                  
+                    ) 
             if src_annotation.line_ends is not None:
                 dst_annotation.set_line_ends(
                     src_annotation.line_ends[0], src_annotation.line_ends[1]
@@ -231,7 +272,9 @@ def get_annotation(annotation_context: AnnotationContext) -> Optional[pymupdf.An
         case AnnotType.PDF_ANNOT_POLY_LINE:
             return get_annotation_with_vertices(
                 AnnotationInfo(
-                    annotation_type, dst_page.number, src_annotation.vertices
+                    annotation_type,
+                    dst_page.number,
+                    coordinate_transformer.transform_vertices(src_annotation.vertices),
                 ),
                 dst_page.add_polyline_annot,
             )
