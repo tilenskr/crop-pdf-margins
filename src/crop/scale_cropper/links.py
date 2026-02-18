@@ -3,8 +3,8 @@ from collections.abc import Sequence
 
 import pymupdf
 
-from crop.scale_cropper.coordinate_transformer import CoordinateTransformer
-from crop.scale_cropper.named_links import convert_named_link_to_goto
+from .coordinate_transformer import CoordinateTransformer
+from .named_links import Converted, Invalid, NamedLinkResolver
 
 
 def copy_links(
@@ -15,7 +15,7 @@ def copy_links(
     - transforms link hot areas ("from") from src coords -> dst coords
     - transforms internal goto destinations ("to") using the destination page's bounds
     """
-
+    resolver = NamedLinkResolver(dst.page_count)
     for page_num in range(dst.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
@@ -27,15 +27,20 @@ def copy_links(
         coordinate_transformer = CoordinateTransformer(
             page_bound, dst_width, dst_height
         )
-
         for link in src_page.get_links():
             link_kind = link.get("kind")
 
-            if link_kind == pymupdf.LINK_NAMED and "zoom" in link:
-                converted_link = convert_named_link_to_goto(link)
-                if not converted_link:
-                    continue
-                link = converted_link
+            converted_result = resolver.resolve(link)
+            if isinstance(converted_result, Invalid):
+                logging.warning(
+                    "Cannot convert LINK_NAMED to LINK GO TO "
+                    "Page: %r, link dict: %r",
+                    page_num,
+                    link,
+                )
+                continue
+            elif isinstance(converted_result, Converted):
+                link = converted_result.link
                 link_kind = pymupdf.LINK_GOTO
 
             new_from = coordinate_transformer.transform_rect(link["from"])
