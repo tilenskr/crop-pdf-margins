@@ -37,7 +37,7 @@ class ScaleCropper(Cropper):
         self._copy_table_of_contents(dst)
         self._copy_attachments(dst)
         self._copy_optional_content_groups(dst)
-        copy_annotations(self._doc,page_bounds, dst)
+        copy_annotations(self._doc, page_bounds, dst)
         copy_links(self._doc, page_bounds, dst)
 
     def _copy_metadata(self, dst: pymupdf.Document):
