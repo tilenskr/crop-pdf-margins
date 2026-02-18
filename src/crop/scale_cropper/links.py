@@ -4,6 +4,7 @@ from collections.abc import Sequence
 import pymupdf
 
 from crop.scale_cropper.coordinate_transformer import CoordinateTransformer
+from crop.scale_cropper.named_links import convert_named_link_to_goto
 
 
 def copy_links(
@@ -29,6 +30,13 @@ def copy_links(
 
         for link in src_page.get_links():
             link_kind = link.get("kind")
+
+            if link_kind == pymupdf.LINK_NAMED and "zoom" in link:
+                converted_link = convert_named_link_to_goto(link)
+                if not converted_link:
+                    continue
+                link = converted_link
+                link_kind = pymupdf.LINK_GOTO
 
             new_from = coordinate_transformer.transform_rect(link["from"])
 
