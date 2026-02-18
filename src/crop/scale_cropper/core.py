@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 import warnings
-from typing import override
+from typing import Any, override
 
 import pymupdf
 
-from crop.scale_cropper.links import copy_links
+from crop.scale_cropper.links import copy_links, transform_link_destination
+from crop.scale_cropper.named_links import NamedLinkResolver
 
 from ..base import Cropper
 from .annotations import copy_annotations
@@ -34,7 +35,7 @@ class ScaleCropper(Cropper):
     ):
         self._copy_metadata(dst)
         self._copy_page_labels(dst)
-        self._copy_table_of_contents(dst)
+        self._copy_table_of_contents(dst, page_bounds)
         self._copy_attachments(dst)
         self._copy_optional_content_groups(dst)
         copy_annotations(self._doc, page_bounds, dst)
@@ -50,11 +51,26 @@ class ScaleCropper(Cropper):
         if labels:
             dst.set_page_labels(labels)  # type:ignore
 
-    def _copy_table_of_contents(self, dst: pymupdf.Document):
+    def _copy_table_of_contents(
+        self, dst: pymupdf.Document, page_bounds: Sequence[pymupdf.Rect]
+    ):
         """Copy able-of-Contents / outlines (bookmarks)."""
         toc = self._doc.get_toc(simple=False)  # type:ignore
-        if toc:
-            dst.set_toc(toc)  # type:ignore
+        if not toc:
+            return
+
+        resolver = NamedLinkResolver(dst.page_count)
+        new_toc: list[list[Any]] = []
+        for lvl, title, page, dest in toc:
+            transformed_dest = transform_link_destination(
+                dest, dst, page_bounds, resolver
+            )
+            if transformed_dest:
+                new_toc.append([lvl, title, page, transformed_dest])
+            else:
+                new_toc.append([lvl, title, page, dest])
+
+        dst.set_toc(new_toc)  # type:ignore
 
     def _copy_attachments(self, dst: pymupdf.Document):
         """Copy embedded files / attachments."""

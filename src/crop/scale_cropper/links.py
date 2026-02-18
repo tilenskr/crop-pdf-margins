@@ -1,10 +1,69 @@
 import logging
 from collections.abc import Sequence
+from typing import Any, Optional
 
 import pymupdf
 
 from .coordinate_transformer import CoordinateTransformer
 from .named_links import Converted, Invalid, NamedLinkResolver
+
+
+def transform_link_destination(
+    link: dict[str, Any],
+    dst_doc: pymupdf.Document,
+    page_bounds: Sequence[pymupdf.Rect],
+    resolver: NamedLinkResolver,
+) -> Optional[dict[str, Any]]:
+    """
+    Transforms a link destination (LINK_GOTO or LINK_NAMED resolved to GOTO).
+    Returns a new dict with transformed 'to' point, or None if invalid.
+    """
+    link_kind = link.get("kind")
+    converted_result = resolver.resolve(link)
+
+    if isinstance(converted_result, Invalid):
+        return None
+    elif isinstance(converted_result, Converted):
+        link = converted_result.link
+        link_kind = pymupdf.LINK_GOTO
+
+    if link_kind != pymupdf.LINK_GOTO:
+        return dict(link)
+
+    new_link = dict(link)
+    link_dest_page = new_link.get("page", -1)
+    link_dest_to = new_link.get("to")
+
+    if not (
+        isinstance(link_dest_page, int) and isinstance(link_dest_to, pymupdf.Point)
+    ):
+        logging.warning(
+            "Invalid LINK_GOTO destination. "
+            "Expected page:int and to:Point, got page=%r (%s), to=%r (%s). "
+            "Full link dict: %r",
+            link_dest_page,
+            type(link_dest_page).__name__,
+            link_dest_to,
+            type(link_dest_to).__name__,
+            new_link,
+        )
+        return None
+
+    if 0 <= link_dest_page < dst_doc.page_count:
+        link_dest_to_width = dst_doc[link_dest_page].rect.width
+        link_dest_to_height = dst_doc[link_dest_page].rect.height
+        link_dest_page_bound = page_bounds[link_dest_page]
+        link_coord_transformer = CoordinateTransformer(
+            link_dest_page_bound, link_dest_to_width, link_dest_to_height
+        )
+        transformed_to_point = link_coord_transformer.transform_point(
+            link_dest_to.x, link_dest_to.y
+        )
+
+        new_link["to"] = pymupdf.Point(transformed_to_point[0], transformed_to_point[1])
+        new_link["page"] = link_dest_page
+
+    return new_link
 
 
 def copy_links(
@@ -28,10 +87,10 @@ def copy_links(
             page_bound, dst_width, dst_height
         )
         for link in src_page.get_links():
-            link_kind = link.get("kind")
-
-            converted_result = resolver.resolve(link)
-            if isinstance(converted_result, Invalid):
+            transformed_link = transform_link_destination(
+                link, dst, page_bounds, resolver
+            )
+            if transformed_link is None:
                 logging.warning(
                     "Cannot convert LINK_NAMED to LINK GO TO "
                     "Page: %r, link dict: %r",
@@ -39,51 +98,11 @@ def copy_links(
                     link,
                 )
                 continue
-            elif isinstance(converted_result, Converted):
-                link = converted_result.link
-                link_kind = pymupdf.LINK_GOTO
 
-            new_from = coordinate_transformer.transform_rect(link["from"])
+            new_from = coordinate_transformer.transform_rect(transformed_link["from"])
 
             if new_from.is_empty:
                 continue
 
-            new_link = dict(link)
-            new_link["from"] = new_from
-
-            if link_kind == pymupdf.LINK_GOTO:
-                link_dest_page = new_link.get("page", -1)
-                link_dest_to = new_link.get("to")
-
-                if not (
-                    isinstance(link_dest_page, int)
-                    and isinstance(link_dest_to, pymupdf.Point)
-                ):
-                    logging.warning(
-                        "Invalid LINK_GOTO destination. "
-                        "Expected page:int and to:Point, got page=%r (%s), to=%r (%s). "
-                        "Full link dict: %r",
-                        link_dest_page,
-                        type(link_dest_page).__name__,
-                        link_dest_to,
-                        type(link_dest_to).__name__,
-                        new_link,
-                    )
-                    continue
-                else:
-                    link_dest_to_width = dst[link_dest_page].rect.width
-                    link_dest_to_height = dst[link_dest_page].rect.height
-                    link_dest_page_bound = page_bounds[link_dest_page]
-                    link_coord_transformer = CoordinateTransformer(
-                        link_dest_page_bound, link_dest_to_width, link_dest_to_height
-                    )
-                    transformed_to_point = link_coord_transformer.transform_point(
-                        link_dest_to.x, link_dest_to.y
-                    )
-
-                    new_link["to"] = pymupdf.Point(
-                        transformed_to_point[0], transformed_to_point[1]
-                    )
-                    new_link["page"] = link_dest_page
-
-            dst_page.insert_link(new_link)
+            transformed_link["from"] = new_from
+            dst_page.insert_link(transformed_link)

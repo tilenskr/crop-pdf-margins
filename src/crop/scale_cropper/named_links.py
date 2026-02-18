@@ -40,10 +40,6 @@ class NamedLinkResolver:
         if link.get("kind") != pymupdf.LINK_NAMED:
             return Unchanged(link)
 
-        from_rect = link.get("from")
-        if not isinstance(from_rect, pymupdf.Rect):
-            return Invalid()
-
         dest_page = self._parse_page(link)
         if dest_page is None:
             return Invalid()
@@ -61,10 +57,14 @@ class NamedLinkResolver:
 
         new_link = {
             "kind": pymupdf.LINK_GOTO,
-            "from": from_rect,
             "page": dest_page,
             "to": point,
         }
+
+        # Page links have a 'from' rectangle, TOC bookmarks do not.
+        if "from" in link:
+            new_link["from"] = link["from"]
+
         return Converted(new_link)
 
     def _point_from_explicit_to(self, link: dict[str, Any]) -> Optional[pymupdf.Point]:
