@@ -30,6 +30,7 @@ class NamedLinkResolver:
     Supports:
       - zoom=a,b,c triplet
       - dest='/Fit' style links
+      - to is present
     """
 
     def __init__(self, page_count: int):
@@ -47,7 +48,10 @@ class NamedLinkResolver:
         if dest_page is None:
             return Invalid()
 
-        point = self._parse_zoom_triplet_point(link)
+        point = self._point_from_explicit_to(link)
+
+        if point is None:
+            point = self._parse_zoom_triplet_point(link)
 
         if point is None:
             point = self._handle_fit_destination(link)
@@ -62,6 +66,26 @@ class NamedLinkResolver:
             "to": point,
         }
         return Converted(new_link)
+
+    def _point_from_explicit_to(self, link: dict[str, Any]) -> Optional[pymupdf.Point]:
+        """
+        Handle kind=4 links that already contain an explicit destination point:
+        {'kind': 4, 'page': 348, 'to': Point(...), 'zoom': 0.0, 'nameddest': 'p346', ...}
+
+        If 'to' exists and is a Point, we can convert to LINK_GOTO directly.
+        We ignore 'zoom' on purpose.
+        """
+        to = link.get("to")
+        if isinstance(to, pymupdf.Point):
+            return to
+
+        # Sometimes 'to' might come as a tuple/list
+        if isinstance(to, (tuple, list)) and len(to) == 2:
+            x, y = to
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                return pymupdf.Point(float(x), float(y))
+
+        return None
 
     def _parse_page(self, link: dict[str, Any]) -> Optional[int]:
         """
