@@ -59,7 +59,7 @@ class ScaleCropper(Cropper):
         if not toc:
             return
 
-        resolver = InternalDestinationResolver(dst.page_count)
+        resolver = InternalDestinationResolver(self._doc, dst.page_count)
         new_toc: list[list[Any]] = []
         for lvl, title, page, dest in toc:
             transformed_dest = transform_link_destination(

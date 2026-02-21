@@ -16,7 +16,7 @@ def copy_links(
     - transforms link hot areas ("from") from src coords -> dst coords
     - transforms internal goto destinations ("to") using the destination page's bounds
     """
-    resolver = InternalDestinationResolver(dst.page_count)
+    resolver = InternalDestinationResolver(src, dst.page_count)
     for page_num in range(dst.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
