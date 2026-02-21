@@ -23,7 +23,7 @@ class Invalid:
 ResolveResult = Union[Converted, Unchanged, Invalid]
 
 
-class NamedLinkResolver:
+class InternalDestinationResolver:
     """
     Converts PyMuPDF kind=4 links (named-ish internal links)
     into LINK_GOTO links without zoom.

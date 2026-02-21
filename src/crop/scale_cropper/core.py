@@ -5,7 +5,7 @@ from typing import Any, override
 import pymupdf
 
 from crop.scale_cropper.links import copy_links, transform_link_destination
-from crop.scale_cropper.named_links import NamedLinkResolver
+from crop.scale_cropper.internal_destinations import InternalDestinationResolver
 
 from ..base import Cropper
 from .annotations import copy_annotations
@@ -59,7 +59,7 @@ class ScaleCropper(Cropper):
         if not toc:
             return
 
-        resolver = NamedLinkResolver(dst.page_count)
+        resolver = InternalDestinationResolver(dst.page_count)
         new_toc: list[list[Any]] = []
         for lvl, title, page, dest in toc:
             transformed_dest = transform_link_destination(

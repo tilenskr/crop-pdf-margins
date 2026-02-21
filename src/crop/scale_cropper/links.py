@@ -5,7 +5,7 @@ from typing import Any, Optional
 import pymupdf
 
 from .coordinate_transformer import CoordinateTransformer
-from .named_links import Converted, Invalid, NamedLinkResolver
+from .internal_destinations import Converted, Invalid, InternalDestinationResolver
 
 
 def copy_links(
@@ -16,7 +16,7 @@ def copy_links(
     - transforms link hot areas ("from") from src coords -> dst coords
     - transforms internal goto destinations ("to") using the destination page's bounds
     """
-    resolver = NamedLinkResolver(dst.page_count)
+    resolver = InternalDestinationResolver(dst.page_count)
     for page_num in range(dst.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
@@ -50,7 +50,7 @@ def transform_link_destination(
     dst_doc: pymupdf.Document,
     page_bounds: Sequence[pymupdf.Rect],
     page_num: int,
-    resolver: NamedLinkResolver,
+    resolver: InternalDestinationResolver,
 ) -> Optional[dict[str, Any]]:
     """
     Transforms a link destination (LINK_GOTO or LINK_NAMED resolved to GOTO).
