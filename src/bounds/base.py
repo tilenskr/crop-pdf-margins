@@ -11,7 +11,7 @@ class BoundsExtractor(ABC):
         self._border_adjuster = BorderAdjuster(borders)
 
     @abstractmethod
-    def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
+    def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
         pass
 
     def _get_rectangle(

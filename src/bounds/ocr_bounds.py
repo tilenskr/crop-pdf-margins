@@ -10,10 +10,10 @@ from .base import BoundsExtractor
 
 class OCRBoundsExtractor(BoundsExtractor):
     @override
-    def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
-        dpi = 500
+    def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
+        dpi_to_use = dpi if dpi is not None else 500
         dpi_pdf = 72.0
-        scale_factor = dpi_pdf / dpi
+        scale_factor = dpi_pdf / dpi_to_use
 
         rectangles: list[pymupdf.Rect] = []
         for i in tqdm(range(doc.page_count)):
@@ -21,7 +21,7 @@ class OCRBoundsExtractor(BoundsExtractor):
             x0, y0 = float("inf"), float("inf")
             x1, y1 = 0, 0
 
-            raster_img: pymupdf.Pixmap = page.get_pixmap(dpi=dpi)  # type:ignore
+            raster_img: pymupdf.Pixmap = page.get_pixmap(dpi=dpi_to_use)  # type:ignore
             img = Image.frombytes(
                 "RGB", (raster_img.width, raster_img.height), raster_img.samples
             )
