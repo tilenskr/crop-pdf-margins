@@ -46,17 +46,8 @@ class InternalDestinationResolver:
         dest_page = self._parse_page(link)
         if dest_page is None:
             return Invalid()
-
-        point = self._point_from_explicit_to(link)
-
-        if point is None:
-            point = self._parse_zoom_triplet_point(link)
-
-        if point is None:
-            point = self._handle_fit_destination(link)
-
-        if point is None:
-            point = self._point_from_outline_xref_dest(link, dest_page)
+        
+        point = self._resolve_point(link, dest_page)
 
         if point is None:
             logging.warning(
@@ -80,26 +71,6 @@ class InternalDestinationResolver:
             new_link["from"] = link["from"]
 
         return Converted(new_link)
-
-    def _point_from_explicit_to(self, link: dict[str, Any]) -> Optional[pymupdf.Point]:
-        """
-        Handle kind=4 links that already contain an explicit destination point:
-        {'kind': 4, 'page': 348, 'to': Point(...), 'zoom': 0.0, 'nameddest': 'p346', ...}
-
-        If 'to' exists and is a Point, we can convert to LINK_GOTO directly.
-        We ignore 'zoom' on purpose.
-        """
-        to = link.get("to")
-        if isinstance(to, pymupdf.Point):
-            return to
-
-        # Sometimes 'to' might come as a tuple/list
-        if isinstance(to, (tuple, list)) and len(to) == 2:
-            x, y = to
-            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
-                return pymupdf.Point(float(x), float(y))
-
-        return None
 
     def _parse_page(self, link: dict[str, Any]) -> Optional[int]:
         """
@@ -130,6 +101,36 @@ class InternalDestinationResolver:
 
         if 0 <= p0 < self.page_count:
             return p0
+        return None
+
+    def _resolve_point(
+        self, link: dict[str, Any], dest_page: int
+    ) -> Optional[pymupdf.Point]:
+        return (
+            self._point_from_explicit_to(link)
+            or self._parse_zoom_triplet_point(link)
+            or self._handle_fit_destination(link)
+            or self._point_from_outline_xref_dest(link, dest_page)
+        )
+
+    def _point_from_explicit_to(self, link: dict[str, Any]) -> Optional[pymupdf.Point]:
+        """
+        Handle kind=4 links that already contain an explicit destination point:
+        {'kind': 4, 'page': 348, 'to': Point(...), 'zoom': 0.0, 'nameddest': 'p346', ...}
+
+        If 'to' exists and is a Point, we can convert to LINK_GOTO directly.
+        We ignore 'zoom' on purpose.
+        """
+        to = link.get("to")
+        if isinstance(to, pymupdf.Point):
+            return to
+
+        # Sometimes 'to' might come as a tuple/list
+        if isinstance(to, (tuple, list)) and len(to) == 2:
+            x, y = to
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                return pymupdf.Point(float(x), float(y))
+
         return None
 
     def _parse_zoom_triplet_point(
@@ -187,7 +188,7 @@ class InternalDestinationResolver:
             return pymupdf.Point(0.0, 0.0)
 
         view = link.get("view")
-        if view == "Fit": 
+        if view == "Fit":
             return pymupdf.Point(0.0, 0.0)
 
         return None
