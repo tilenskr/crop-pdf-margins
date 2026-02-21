@@ -7,7 +7,10 @@ class PageBoundsExtractor(BoundsExtractor):
     """Extracts the tightest content bounding‐box on each page."""
 
     @override
-    def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
+    def get_bounds(
+        self, doc: pymupdf.Document, dpi: int | None
+    ) -> list[pymupdf.Rect]:
+        _ = dpi
         rectangles: list[pymupdf.Rect] = []
         for page in doc:
             bounds = page.bound()

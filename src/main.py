@@ -58,7 +58,7 @@ def main():
     )
     parser.add_argument(
         "--dpi",
-        type=int,
+        type=validate_dpi,
         default=None,
         help=(
             "DPI for rendering page images. Applicable only to `histogram` and "
@@ -87,6 +87,16 @@ def validate_border_input(border: str) -> BorderSpec:
         return parse_border(border)
     except ValueError as e:
         raise argparse.ArgumentTypeError(e)
+
+
+def validate_dpi(raw_value: str) -> int:
+    try:
+        dpi = int(raw_value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("DPI must be an integer.")
+    if dpi <= 0:
+        raise argparse.ArgumentTypeError("DPI must be a positive integer.")
+    return dpi
 
 
 def validate_and_expand_border(parser, raw_specs) -> FourBorders:

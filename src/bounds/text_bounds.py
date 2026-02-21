@@ -15,7 +15,10 @@ class TextBlock(TypedDict):
 class TextBlocksBoundsExtractor(BoundsExtractor, ABC):
     _use_image_bounds: bool = False
 
-    def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
+    def get_bounds(
+        self, doc: pymupdf.Document, dpi: int | None
+    ) -> list[pymupdf.Rect]:
+        _ = dpi
         rectangles: list[pymupdf.Rect] = []
         for page in doc:
             # initialize to extremes
