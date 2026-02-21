@@ -60,7 +60,11 @@ def main():
         "--dpi",
         type=int,
         default=None,
-        help="DPI for rendering page images. Defaults to the extractor's default.",
+        help=(
+            "DPI for rendering page images. Applicable only to `histogram` and "
+            "`ocr`. If unset: `histogram` uses renderer default (`None`), "
+            "`ocr` uses 500."
+        ),
     )
 
     args = parser.parse_args()

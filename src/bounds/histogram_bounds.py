@@ -12,13 +12,12 @@ class HistogramBoundsExtractor(BoundsExtractor):
     @override
     def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
         rectangles: list[pymupdf.Rect] = []
-        
-        dpi_to_use = dpi if dpi is not None else 72
-        scale_factor = 72.0 / dpi_to_use
 
         for i in tqdm(range(doc.page_count)):
             page = doc.load_page(i)
-            pix: pymupdf.Pixmap = page.get_pixmap(dpi=dpi_to_use) if dpi is not None else page.get_pixmap() # type:ignore
+            pix: pymupdf.Pixmap = (
+                page.get_pixmap(dpi=dpi) if dpi is not None else page.get_pixmap()
+            )  # type:ignore
             img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
             pixels: list[tuple[int, int, int]] = list(img.getdata())
             counter = Counter(pixels)
@@ -40,6 +39,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
             x0, y0, x1, y1 = leftmost_point[0], topmost_point[1], rightmost_point[0], bottommost_point[1]
 
             if dpi is not None:
+                scale_factor = 72.0 / dpi
                 x0, y0, x1, y1 = x0 * scale_factor, y0 * scale_factor, x1 * scale_factor, y1 * scale_factor
 
 
