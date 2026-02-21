@@ -53,12 +53,16 @@ class NamedLinkResolver:
             point = self._handle_fit_destination(link)
 
         if point is None:
-            return Invalid()
+            new_link = dict(link)
+            new_link["kind"] = pymupdf.LINK_GOTO
+            new_link["page"] = dest_page
+            return Converted(new_link)
 
         new_link = {
             "kind": pymupdf.LINK_GOTO,
             "page": dest_page,
             "to": point,
+            "xref": link["xref"]
         }
 
         # Page links have a 'from' rectangle, TOC bookmarks do not.

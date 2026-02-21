@@ -63,7 +63,7 @@ class ScaleCropper(Cropper):
         new_toc: list[list[Any]] = []
         for lvl, title, page, dest in toc:
             transformed_dest = transform_link_destination(
-                dest, dst, page_bounds, resolver
+                dest, dst, page_bounds, page, resolver
             )
             if transformed_dest:
                 new_toc.append([lvl, title, page, transformed_dest])
