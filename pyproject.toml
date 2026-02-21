@@ -20,3 +20,10 @@ convert = [
   "-d", "output",
   "-b", "1%", "5%", "1%", "5%",
 ]
+convert_best = [
+  "python", "src/main.py",
+  "-i", "<pdf-path>",
+  "-d", "output",
+  "-b", "1%", "5%", "1%", "5%",
+  "-dpi", 300
+]
