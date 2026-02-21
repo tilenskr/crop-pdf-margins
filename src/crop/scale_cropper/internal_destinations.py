@@ -186,6 +186,10 @@ class InternalDestinationResolver:
             # We choose top-of-page.
             return pymupdf.Point(0.0, 0.0)
 
+        view = link.get("view")
+        if view == "Fit": 
+            return pymupdf.Point(0.0, 0.0)
+
         return None
 
     @staticmethod
