@@ -4,7 +4,7 @@ from pathlib import Path
 from borders import BorderSpec, BorderUnit, FourBorders, expand_css_border, parse_border
 from bounds import EXTRACTOR_MAPPING
 from crop import CROPPER_MAPPING
-from processing import process_pdf
+from processing import ProcessPdfRequest, process_pdf
 
 
 def main():
@@ -71,7 +71,15 @@ def main():
     file_name = args.name if args.name is not None else args.input.name
     output = args.output_dir / file_name
     borders = validate_and_expand_border(parser, args.border)
-    process_pdf(args.input, output, args.bounds_extractor, borders, args.cropper, args.dpi)
+    request = ProcessPdfRequest(
+        input_path=args.input,
+        output_path=output,
+        bounds_extractor=args.bounds_extractor,
+        borders=borders,
+        cropper_name=args.cropper,
+        dpi=args.dpi,
+    )
+    process_pdf(request)
 
 
 def validate_border_input(border: str) -> BorderSpec:
