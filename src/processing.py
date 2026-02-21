@@ -13,10 +13,11 @@ def process_pdf(
     bounds_extractor: str,
     borders: FourBorders,
     cropper_name: str,
+    dpi: int | None,
 ):
     doc = pymupdf.open(input_path)
     extractor = get_bounds_extractor(bounds_extractor, borders)
-    bounds = extractor.get_bounds(doc)
+    bounds = extractor.get_bounds(doc, dpi)
     cropper = get_cropper(cropper_name, doc)
     new_doc = cropper.crop(bounds)
     

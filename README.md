@@ -58,6 +58,7 @@ usage: main.py -i INPUT -d OUTPUT_DIR -be {page_bounds,text_page,dict_text,text_
 - **`-c CROPPER`**: Cropping strategy used to trim page content. Defaults to `scale`.
   - `box`: Crops each page by adjusting visible bounds without scaling or redrawing content.
   - `scale`: Crops each page to given bounds and scales content to full-page size.
+- **`--dpi DPI`**: DPI for rendering page images. Defaults to the extractor's default.
 - **`-h`**: Display the help message.
 
 ## Limitations

@@ -10,14 +10,15 @@ from collections import Counter
 
 class HistogramBoundsExtractor(BoundsExtractor):
     @override
-    def get_bounds(self, doc: pymupdf.Document) -> list[pymupdf.Rect]:
+    def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
         rectangles: list[pymupdf.Rect] = []
-        dpi = 300
-        dpi_pdf = 72.0
-        scale_factor = dpi_pdf / dpi
+        
+        dpi_to_use = dpi if dpi is not None else 72
+        scale_factor = 72.0 / dpi_to_use
+
         for i in tqdm(range(doc.page_count)):
             page = doc.load_page(i)
-            pix: pymupdf.Pixmap = page.get_pixmap(dpi=dpi)  # type:ignore
+            pix: pymupdf.Pixmap = page.get_pixmap(dpi=dpi_to_use) if dpi is not None else page.get_pixmap() # type:ignore
             img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
             pixels: list[tuple[int, int, int]] = list(img.getdata())
             counter = Counter(pixels)
@@ -35,12 +36,19 @@ class HistogramBoundsExtractor(BoundsExtractor):
             topmost_point = self._get_topmost_point(pixels, img.size, dominant_color)
             rightmost_point = self._get_rightmost_point(pixels, img.size, dominant_color)
             bottommost_point = self._get_bottommost_point(pixels, img.size, dominant_color)
+            
+            x0, y0, x1, y1 = leftmost_point[0], topmost_point[1], rightmost_point[0], bottommost_point[1]
+
+            if dpi is not None:
+                x0, y0, x1, y1 = x0 * scale_factor, y0 * scale_factor, x1 * scale_factor, y1 * scale_factor
+
+
             rect = self._get_rectangle(
                 bounds=pymupdf.Rect(
-                    x0=leftmost_point[0] * scale_factor,
-                    y0=topmost_point[1] * scale_factor,
-                    x1=rightmost_point[0] * scale_factor,
-                    y1=bottommost_point[1] * scale_factor,
+                    x0=x0,
+                    y0=y0,
+                    x1=x1,
+                    y1=y1,
                 ),
                 has_content=True,
                 page_rect=page.rect,

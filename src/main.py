@@ -56,12 +56,18 @@ def main():
         choices=list(CROPPER_MAPPING.keys()),
         help="Cropping strategy used to trim page content.",
     )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=None,
+        help="DPI for rendering page images. Defaults to the extractor's default.",
+    )
 
     args = parser.parse_args()
     file_name = args.name if args.name is not None else args.input.name
     output = args.output_dir / file_name
     borders = validate_and_expand_border(parser, args.border)
-    process_pdf(args.input, output, args.bounds_extractor, borders, args.cropper)
+    process_pdf(args.input, output, args.bounds_extractor, borders, args.cropper, args.dpi)
 
 
 def validate_border_input(border: str) -> BorderSpec:
