@@ -207,7 +207,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
     ) -> int:
         left_cut = 0
         for col in range(width):
-            if self._is_uniform_non_background_column(pixels, width, height, col, dominant_color):
+            if self._is_non_background_column(pixels, width, height, col, dominant_color):
                 left_cut += 1
                 continue
             break
@@ -223,7 +223,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
     ) -> int:
         right_cut = 0
         for col in range(width - 1, left_cut - 1, -1):
-            if self._is_uniform_non_background_column(pixels, width, height, col, dominant_color):
+            if self._is_non_background_column(pixels, width, height, col, dominant_color):
                 right_cut += 1
                 continue
             break
@@ -242,7 +242,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         start_col = left_cut
         end_col = width - 1 - right_cut
         for row in range(height):
-            if self._is_uniform_non_background_row(
+            if self._is_non_background_row(
                 pixels,
                 width,
                 row,
@@ -269,7 +269,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         start_col = left_cut
         end_col = width - 1 - right_cut
         for row in range(height - 1, top_cut - 1, -1):
-            if self._is_uniform_non_background_row(
+            if self._is_non_background_row(
                 pixels,
                 width,
                 row,
@@ -282,7 +282,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
             break
         return bottom_cut
 
-    def _is_uniform_non_background_row(
+    def _is_non_background_row(
         self,
         pixels: list[tuple[int, int, int]],
         width: int,
@@ -299,7 +299,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 return False
         return True
 
-    def _is_uniform_non_background_column(
+    def _is_non_background_column(
         self,
         pixels: list[tuple[int, int, int]],
         width: int,
