@@ -27,3 +27,7 @@ convert_best = [
   "-b", "1%", "5%", "1%", "5%",
   "--dpi", 300
 ]
+
+[tool.pdm.scripts.tests]
+cmd = "python -m unittest discover -s src/bounds/tests -p test_*.py -v"
+env = { PYTHONPATH = ".:src" }

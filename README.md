@@ -34,6 +34,13 @@ Alternatively, you can use the predefined task `convert`, which includes example
 ```bash
     pdm run convert
 ```
+
+## Running Tests
+Run unit tests with:
+```bash
+pdm run tests
+```
+
 ### Command-Line Usage
 For more control, you can run the program with specific options:
 ```bash
