@@ -24,7 +24,7 @@ The project requires:
 - [**pytesseract**](https://pypi.org/project/pytesseract/) – for recognizing the characters (OCR) in the PDF document. Use only by the [OCRBoundsExtractor](src/crop/box_cropper.py). You have to install the Google Tesseract OCR by following the guide on the aforementioned webpage.
 
 ## Usage
-The program can be executed using Pixi with the following command:
+The program can be executed using PDM with the following command:
 ```bash
     pdm run python src/main.py
 ```
