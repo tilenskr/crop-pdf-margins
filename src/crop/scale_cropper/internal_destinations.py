@@ -106,12 +106,17 @@ class InternalDestinationResolver:
     def _resolve_point(
         self, link: dict[str, Any], dest_page: int
     ) -> Optional[pymupdf.Point]:
-        return (
-            self._point_from_explicit_to(link)
-            or self._parse_zoom_triplet_point(link)
-            or self._handle_fit_destination(link)
-            or self._point_from_outline_xref_dest(link, dest_page)
+        resolvers = (
+            lambda: self._point_from_explicit_to(link),
+            lambda: self._parse_zoom_triplet_point(link),
+            lambda: self._handle_fit_destination(link),
+            lambda: self._point_from_outline_xref_dest(link, dest_page),
         )
+        for resolve in resolvers:
+            point = resolve()
+            if point is not None:
+                return point
+        return None
 
     def _point_from_explicit_to(self, link: dict[str, Any]) -> Optional[pymupdf.Point]:
         """
