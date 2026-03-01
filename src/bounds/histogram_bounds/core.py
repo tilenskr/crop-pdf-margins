@@ -1,11 +1,11 @@
+from collections import Counter
 from typing import override
 
 import pymupdf
 from PIL import Image
 from tqdm import tqdm
 
-from .base import BoundsExtractor
-from collections import Counter
+from ..base import BoundsExtractor
 
 
 class HistogramBoundsExtractor(BoundsExtractor):
@@ -195,7 +195,9 @@ class HistogramBoundsExtractor(BoundsExtractor):
         left = self._scan_left_border(pixels, width, height, dominant_color)
         right = self._scan_right_border(pixels, width, height, dominant_color, left)
         top = self._scan_top_border(pixels, width, height, dominant_color, left, right)
-        bottom = self._scan_bottom_border(pixels, width, height, dominant_color, left, right, top)
+        bottom = self._scan_bottom_border(
+            pixels, width, height, dominant_color, left, right, top
+        )
         return left, top, right, bottom
 
     def _scan_left_border(
@@ -314,5 +316,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         return True
 
     @staticmethod
-    def _pixel_at(pixels: list[tuple[int, int, int]], width, i: int, j: int) -> tuple[int, int, int]:
+    def _pixel_at(
+        pixels: list[tuple[int, int, int]], width, i: int, j: int
+    ) -> tuple[int, int, int]:
         return pixels[i * width + j]
