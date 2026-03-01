@@ -6,6 +6,8 @@ from PIL import Image
 from tqdm import tqdm
 
 from ..base import BoundsExtractor
+from .edge_cuts import get_border_cuts
+from .raster import pixel_at
 
 
 class HistogramBoundsExtractor(BoundsExtractor):
@@ -115,7 +117,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         max_row = height - 1 - bottom_cut
         for j in range(min_col, max_col + 1):
             for i in range(min_row, max_row + 1):
-                if self._pixel_at(pixels, width, i, j) != color:
+                if pixel_at(pixels, width, i, j) != color:
                     return (j, i)
         return (-1, -1)
 
@@ -139,7 +141,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         max_row = height - 1 - bottom_cut
         for i in range(min_row, max_row + 1):
             for j in range(min_col, max_col + 1):
-                if self._pixel_at(pixels, width, i, j) != color:
+                if pixel_at(pixels, width, i, j) != color:
                     return (j, i)
         return (min_col, min_row)
 
@@ -160,7 +162,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         max_row = height - 1 - bottom_cut
         for j in range(max_col, min_col - 1, -1):
             for i in range(max_row, min_row - 1, -1):
-                if self._pixel_at(pixels, width, i, j) != color:
+                if pixel_at(pixels, width, i, j) != color:
                     return (j, i)
         return (max_col, max_row)
 
@@ -181,7 +183,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         max_row = height - 1 - bottom_cut
         for i in range(max_row, min_row - 1, -1):
             for j in range(max_col, min_col - 1, -1):
-                if self._pixel_at(pixels, width, i, j) != color:
+                if pixel_at(pixels, width, i, j) != color:
                     return (j, i)
         return (max_col, max_row)
 
@@ -191,132 +193,4 @@ class HistogramBoundsExtractor(BoundsExtractor):
         img_size: tuple[int, int],
         dominant_color: tuple[int, int, int],
     ) -> tuple[int, int, int, int]:
-        width, height = img_size
-        left = self._scan_left_border(pixels, width, height, dominant_color)
-        right = self._scan_right_border(pixels, width, height, dominant_color, left)
-        top = self._scan_top_border(pixels, width, height, dominant_color, left, right)
-        bottom = self._scan_bottom_border(
-            pixels, width, height, dominant_color, left, right, top
-        )
-        return left, top, right, bottom
-
-    def _scan_left_border(
-        self,
-        pixels: list[tuple[int, int, int]],
-        width: int,
-        height: int,
-        dominant_color: tuple[int, int, int],
-    ) -> int:
-        left_cut = 0
-        for col in range(width):
-            if self._is_non_background_column(pixels, width, height, col, dominant_color):
-                left_cut += 1
-                continue
-            break
-        return left_cut
-
-    def _scan_right_border(
-        self,
-        pixels: list[tuple[int, int, int]],
-        width: int,
-        height: int,
-        dominant_color: tuple[int, int, int],
-        left_cut: int,
-    ) -> int:
-        right_cut = 0
-        for col in range(width - 1, left_cut - 1, -1):
-            if self._is_non_background_column(pixels, width, height, col, dominant_color):
-                right_cut += 1
-                continue
-            break
-        return right_cut
-
-    def _scan_top_border(
-        self,
-        pixels: list[tuple[int, int, int]],
-        width: int,
-        height: int,
-        dominant_color: tuple[int, int, int],
-        left_cut: int,
-        right_cut: int,
-    ) -> int:
-        top_cut = 0
-        start_col = left_cut
-        end_col = width - 1 - right_cut
-        for row in range(height):
-            if self._is_non_background_row(
-                pixels,
-                width,
-                row,
-                start_col,
-                end_col,
-                dominant_color,
-            ):
-                top_cut += 1
-                continue
-            break
-        return top_cut
-
-    def _scan_bottom_border(
-        self,
-        pixels: list[tuple[int, int, int]],
-        width: int,
-        height: int,
-        dominant_color: tuple[int, int, int],
-        left_cut: int,
-        right_cut: int,
-        top_cut: int,
-    ) -> int:
-        bottom_cut = 0
-        start_col = left_cut
-        end_col = width - 1 - right_cut
-        for row in range(height - 1, top_cut - 1, -1):
-            if self._is_non_background_row(
-                pixels,
-                width,
-                row,
-                start_col,
-                end_col,
-                dominant_color,
-            ):
-                bottom_cut += 1
-                continue
-            break
-        return bottom_cut
-
-    def _is_non_background_row(
-        self,
-        pixels: list[tuple[int, int, int]],
-        width: int,
-        row: int,
-        start_col: int,
-        end_col: int,
-        dominant_color: tuple[int, int, int],
-    ) -> bool:
-        if start_col > end_col:
-            return False
-        for col in range(start_col, end_col + 1):
-            value = self._pixel_at(pixels, width, row, col)
-            if value == dominant_color:
-                return False
-        return True
-
-    def _is_non_background_column(
-        self,
-        pixels: list[tuple[int, int, int]],
-        width: int,
-        height: int,
-        col: int,
-        dominant_color: tuple[int, int, int],
-    ) -> bool:
-        for row in range(height):
-            value = self._pixel_at(pixels, width, row, col)
-            if value == dominant_color:
-                return False
-        return True
-
-    @staticmethod
-    def _pixel_at(
-        pixels: list[tuple[int, int, int]], width, i: int, j: int
-    ) -> tuple[int, int, int]:
-        return pixels[i * width + j]
+        return get_border_cuts(pixels, img_size, dominant_color)
