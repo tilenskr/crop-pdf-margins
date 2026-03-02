@@ -1,5 +1,6 @@
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass, field
+from enum import Enum
 from math import ceil
 from statistics import median
 
@@ -31,6 +32,43 @@ class _PageCandidate:
     height: int
     header_cut: int | None
     footer_cut: int | None
+
+
+class _BandKind(Enum):
+    HEADER = "header"
+    FOOTER = "footer"
+
+
+@dataclass
+class _BandDetectionThresholds:
+    """
+    Thresholds for deciding whether a top or bottom content band can be
+    treated as a header or footer candidate.
+
+    Attributes:
+        search_boundary: Row boundary that restricts detection to the top or
+            bottom 18% of the page.
+        max_band_height: Maximum height allowed for a header/footer candidate band.
+        min_gap: Minimum whitespace gap required between body content and the
+            candidate band.
+    """
+
+    height: InitVar[int]
+    kind: InitVar[_BandKind]
+    search_boundary: int = field(init=False)
+    max_band_height: int = field(init=False)
+    min_gap: int = field(init=False)
+
+    def __post_init__(self, height, kind) -> None:
+        # Restrict detection to the top or bottom 18% of the page.
+        search_margin = max(1, int(height * 0.18))
+        self.search_boundary = (
+            search_margin if kind is _BandKind.HEADER else height - search_margin
+        )
+        # If a band is taller than 12% of page height, it is probably not a
+        # header or footer.
+        self.max_band_height = max(1, int(height * 0.12))
+        self.min_gap = max(4, int(height * 0.02))
 
 
 def detect_header_footer_cuts(
@@ -166,21 +204,20 @@ def _detect_header_cut(bands: list[_ContentRowBand], height: int) -> int | None:
     if not bands:
         return None
 
-    # todo document this cuz in footer is reverse
-    # only look for header candidates in the top 18% of the page
-    search_limit = max(1, int(height * 0.18))
-    # if a band is taller than 12% of page height, it is probably not a header
-    max_band_height = max(1, int(height * 0.12))
-    # after the candidate header band, require some blank space
-    min_gap = max(4, int(height * 0.02))
+    thresholds = _BandDetectionThresholds(height=height, kind=_BandKind.HEADER)
 
     for index, band in enumerate(bands):
-        if band.start_row >= search_limit:
+        if band.start_row >= thresholds.search_boundary:
             break
-        if band.height > max_band_height:
+        if band.height > thresholds.max_band_height:
             continue
 
-        next_band = _find_next_band_with_gap(bands, index + 1, band.end_row, min_gap)
+        next_band = _find_next_band_with_gap(
+            bands,
+            index + 1,
+            band.end_row,
+            thresholds.min_gap,
+        )
         if next_band is None:
             continue
         return band.end_row + 1
@@ -205,22 +242,20 @@ def _detect_footer_cut(bands: list[_ContentRowBand], height: int) -> int | None:
     if not bands:
         return None
 
-    # only consider footer candidates in the bottom 18% of the page
-    search_start = min(height - 1, max(0, int(height * 0.82)))
-    # footer should be a relatively small band
-    max_band_height = max(1, int(height * 0.12))
-    #  require blank space between the body and the footer band
-    min_gap = max(4, int(height * 0.02))
+    thresholds = _BandDetectionThresholds(height=height, kind=_BandKind.FOOTER)
 
     for index in range(len(bands) - 1, -1, -1):
         band = bands[index]
-        if band.end_row < search_start:
+        if band.end_row < thresholds.search_boundary:
             break
-        if band.height > max_band_height:
+        if band.height > thresholds.max_band_height:
             continue
 
         previous_band = _find_previous_band_with_gap(
-            bands, index - 1, band.start_row, min_gap
+            bands,
+            index - 1,
+            band.start_row,
+            thresholds.min_gap,
         )
         if previous_band is None:
             continue
