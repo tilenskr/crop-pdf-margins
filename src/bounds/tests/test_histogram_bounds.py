@@ -103,6 +103,23 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (1, 1, 1, 1))
 
+    def test_respects_initial_vertical_cuts(self) -> None:
+        width, height = 10, 10
+        pixels = self._build_pixels(width, height, self.bg)
+        border = (0, 0, 0)
+
+        self._set_row(pixels, width, 2, border)
+        self._set_row(pixels, width, height - 3, border)
+
+        cuts = self.extractor._get_border_cuts(
+            pixels,
+            (width, height),
+            self.bg,
+            initial_top_cut=2,
+            initial_bottom_cut=2,
+        )
+        self.assertEqual(cuts, (0, 3, 0, 3))
+
 
 if __name__ == "__main__":
     unittest.main()

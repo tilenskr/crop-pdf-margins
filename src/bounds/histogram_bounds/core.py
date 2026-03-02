@@ -7,12 +7,18 @@ from tqdm import tqdm
 
 from ..base import BoundsExtractor
 from .edge_cuts import get_border_cuts
+from .header_footer import HeaderFooterCuts, detect_header_footer_cuts
 from .raster import pixel_at
 
 
 class HistogramBoundsExtractor(BoundsExtractor):
+    def __init__(self, borders, detect_header_footer: bool = True):
+        super().__init__(borders)
+        self._detect_header_footer = detect_header_footer
+
     @override
     def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
+        header_footer_cuts = self._get_header_footer_cuts(doc, dpi)
         rectangles: list[pymupdf.Rect] = []
         for i in tqdm(range(doc.page_count)):
             page = doc.load_page(i)
@@ -23,10 +29,13 @@ class HistogramBoundsExtractor(BoundsExtractor):
             pixels: list[tuple[int, int, int]] = list(img.getdata())
             counter = Counter(pixels)
             dominant_color, _ = counter.most_common(1)[0]
+            vertical_cuts = header_footer_cuts[i]
             left_cut, top_cut, right_cut, bottom_cut = self._get_border_cuts(
                 pixels,
                 img.size,
                 dominant_color,
+                vertical_cuts.top_cut,
+                vertical_cuts.bottom_cut,
             )
 
             leftmost_point = self._get_leftmost_point(
@@ -99,6 +108,13 @@ class HistogramBoundsExtractor(BoundsExtractor):
             )
             rectangles.append(rect)
         return rectangles
+
+    def _get_header_footer_cuts(
+        self, doc: pymupdf.Document, dpi: int | None
+    ) -> list[HeaderFooterCuts]:
+        if not self._detect_header_footer:
+            return [HeaderFooterCuts() for _ in range(doc.page_count)]
+        return detect_header_footer_cuts(doc, dpi)
 
     def _get_leftmost_point(
         self,
@@ -192,5 +208,13 @@ class HistogramBoundsExtractor(BoundsExtractor):
         pixels: list[tuple[int, int, int]],
         img_size: tuple[int, int],
         dominant_color: tuple[int, int, int],
+        initial_top_cut: int = 0,
+        initial_bottom_cut: int = 0,
     ) -> tuple[int, int, int, int]:
-        return get_border_cuts(pixels, img_size, dominant_color)
+        return get_border_cuts(
+            pixels,
+            img_size,
+            dominant_color,
+            initial_top_cut,
+            initial_bottom_cut,
+        )

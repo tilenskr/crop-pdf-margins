@@ -5,12 +5,32 @@ def get_border_cuts(
     pixels: list[tuple[int, int, int]],
     img_size: tuple[int, int],
     dominant_color: tuple[int, int, int],
+    initial_top_cut: int = 0,
+    initial_bottom_cut: int = 0,
 ) -> tuple[int, int, int, int]:
     width, height = img_size
     left = scan_left_border(pixels, width, height, dominant_color)
     right = scan_right_border(pixels, width, height, dominant_color, left)
-    top = scan_top_border(pixels, width, height, dominant_color, left, right)
-    bottom = scan_bottom_border(pixels, width, height, dominant_color, left, right, top)
+    top = scan_top_border(
+        pixels,
+        width,
+        height,
+        dominant_color,
+        left,
+        right,
+        initial_top_cut,
+        initial_bottom_cut,
+    )
+    bottom = scan_bottom_border(
+        pixels,
+        width,
+        height,
+        dominant_color,
+        left,
+        right,
+        top,
+        initial_bottom_cut,
+    )
     return left, top, right, bottom
 
 
@@ -52,11 +72,14 @@ def scan_top_border(
     dominant_color: tuple[int, int, int],
     left_cut: int,
     right_cut: int,
+    initial_top_cut: int,
+    initial_bottom_cut: int,
 ) -> int:
-    top_cut = 0
+    top_cut = initial_top_cut
     start_col = left_cut
     end_col = width - 1 - right_cut
-    for row in range(height):
+    bottom_limit = max(initial_top_cut, height - initial_bottom_cut)
+    for row in range(initial_top_cut, bottom_limit):
         if is_non_background_row(
             pixels,
             width,
@@ -79,11 +102,12 @@ def scan_bottom_border(
     left_cut: int,
     right_cut: int,
     top_cut: int,
+    initial_bottom_cut: int,
 ) -> int:
-    bottom_cut = 0
+    bottom_cut = initial_bottom_cut
     start_col = left_cut
     end_col = width - 1 - right_cut
-    for row in range(height - 1, top_cut - 1, -1):
+    for row in range(height - 1 - initial_bottom_cut, top_cut - 1, -1):
         if is_non_background_row(
             pixels,
             width,
