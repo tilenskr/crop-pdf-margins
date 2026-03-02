@@ -30,7 +30,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
             counter = Counter(pixels)
             dominant_color, _ = counter.most_common(1)[0]
             vertical_cuts = header_footer_cuts[i]
-            left_cut, top_cut, right_cut, bottom_cut = self._get_border_cuts(
+            left_cut, top_cut, right_cut, bottom_cut = get_border_cuts(
                 pixels,
                 img.size,
                 dominant_color,
@@ -202,19 +202,4 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 if pixel_at(pixels, width, i, j) != color:
                     return (j, i)
         return (max_col, max_row)
-
-    def _get_border_cuts(
-        self,
-        pixels: list[tuple[int, int, int]],
-        img_size: tuple[int, int],
-        dominant_color: tuple[int, int, int],
-        initial_top_cut: int = 0,
-        initial_bottom_cut: int = 0,
-    ) -> tuple[int, int, int, int]:
-        return get_border_cuts(
-            pixels,
-            img_size,
-            dominant_color,
-            initial_top_cut,
-            initial_bottom_cut,
-        )
+    
