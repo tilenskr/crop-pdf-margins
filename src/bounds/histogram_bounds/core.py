@@ -1,4 +1,5 @@
 from collections import Counter
+from dataclasses import dataclass
 from typing import override
 
 import pymupdf
@@ -9,6 +10,18 @@ from ..base import BoundsExtractor
 from .edge_cuts import get_border_cuts
 from .header_footer import HeaderFooterCuts, detect_header_footer_cuts
 from .raster import pixel_at
+
+
+@dataclass(frozen=True)
+class _PointSearchContext:
+    pixels: list[tuple[int, int, int]]
+    width: int
+    height: int
+    color: tuple[int, int, int]
+    min_col: int
+    max_col: int
+    min_row: int
+    max_row: int
 
 
 class HistogramBoundsExtractor(BoundsExtractor):
@@ -37,16 +50,18 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 vertical_cuts.top_cut,
                 vertical_cuts.bottom_cut,
             )
-
-            leftmost_point = self._get_leftmost_point(
-                pixels,
-                img.size,
-                dominant_color,
-                left_cut,
-                right_cut,
-                top_cut,
-                bottom_cut,
+            search_context = _PointSearchContext(
+                pixels=pixels,
+                width=img.width,
+                height=img.height,
+                color=dominant_color,
+                min_col=left_cut,
+                max_col=img.width - 1 - right_cut,
+                min_row=top_cut,
+                max_row=img.height - 1 - bottom_cut,
             )
+
+            leftmost_point = self._get_leftmost_point(search_context)
             if self._is_empty_page(leftmost_point):
                 rect = self._get_rectangle(
                     bounds=pymupdf.Rect(),
@@ -55,33 +70,9 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 )
                 rectangles.append(rect)
                 continue
-            topmost_point = self._get_topmost_point(
-                pixels,
-                img.size,
-                dominant_color,
-                left_cut,
-                right_cut,
-                top_cut,
-                bottom_cut,
-            )
-            rightmost_point = self._get_rightmost_point(
-                pixels,
-                img.size,
-                dominant_color,
-                left_cut,
-                right_cut,
-                top_cut,
-                bottom_cut,
-            )
-            bottommost_point = self._get_bottommost_point(
-                pixels,
-                img.size,
-                dominant_color,
-                left_cut,
-                right_cut,
-                top_cut,
-                bottom_cut,
-            )
+            topmost_point = self._get_topmost_point(search_context)
+            rightmost_point = self._get_rightmost_point(search_context)
+            bottommost_point = self._get_bottommost_point(search_context)
 
             x0 = leftmost_point[0]
             y0 = topmost_point[1]
@@ -118,22 +109,11 @@ class HistogramBoundsExtractor(BoundsExtractor):
 
     def _get_leftmost_point(
         self,
-        pixels: list[tuple[int, int, int]],
-        img_size: tuple[int, int],
-        color: tuple[int, int, int],
-        left_cut: int,
-        right_cut: int,
-        top_cut: int,
-        bottom_cut: int,
+        context: _PointSearchContext,
     ) -> tuple[int, int]:
-        width, height = img_size
-        min_col = left_cut
-        max_col = width - 1 - right_cut
-        min_row = top_cut
-        max_row = height - 1 - bottom_cut
-        for j in range(min_col, max_col + 1):
-            for i in range(min_row, max_row + 1):
-                if pixel_at(pixels, width, i, j) != color:
+        for j in range(context.min_col, context.max_col + 1):
+            for i in range(context.min_row, context.max_row + 1):
+                if pixel_at(context.pixels, context.width, i, j) != context.color:
                     return (j, i)
         return (-1, -1)
 
@@ -142,64 +122,31 @@ class HistogramBoundsExtractor(BoundsExtractor):
 
     def _get_topmost_point(
         self,
-        pixels: list[tuple[int, int, int]],
-        img_size: tuple[int, int],
-        color: tuple[int, int, int],
-        left_cut: int,
-        right_cut: int,
-        top_cut: int,
-        bottom_cut: int,
+        context: _PointSearchContext,
     ) -> tuple[int, int]:
-        width, height = img_size
-        min_col = left_cut
-        max_col = width - 1 - right_cut
-        min_row = top_cut
-        max_row = height - 1 - bottom_cut
-        for i in range(min_row, max_row + 1):
-            for j in range(min_col, max_col + 1):
-                if pixel_at(pixels, width, i, j) != color:
+        for i in range(context.min_row, context.max_row + 1):
+            for j in range(context.min_col, context.max_col + 1):
+                if pixel_at(context.pixels, context.width, i, j) != context.color:
                     return (j, i)
-        return (min_col, min_row)
+        return (context.min_col, context.min_row)
 
     def _get_rightmost_point(
         self,
-        pixels: list[tuple[int, int, int]],
-        img_size: tuple[int, int],
-        color: tuple[int, int, int],
-        left_cut: int,
-        right_cut: int,
-        top_cut: int,
-        bottom_cut: int,
+        context: _PointSearchContext,
     ) -> tuple[int, int]:
-        width, height = img_size
-        min_col = left_cut
-        max_col = width - 1 - right_cut
-        min_row = top_cut
-        max_row = height - 1 - bottom_cut
-        for j in range(max_col, min_col - 1, -1):
-            for i in range(max_row, min_row - 1, -1):
-                if pixel_at(pixels, width, i, j) != color:
+        for j in range(context.max_col, context.min_col - 1, -1):
+            for i in range(context.max_row, context.min_row - 1, -1):
+                if pixel_at(context.pixels, context.width, i, j) != context.color:
                     return (j, i)
-        return (max_col, max_row)
+        return (context.max_col, context.max_row)
 
     def _get_bottommost_point(
         self,
-        pixels: list[tuple[int, int, int]],
-        img_size: tuple[int, int],
-        color: tuple[int, int, int],
-        left_cut: int,
-        right_cut: int,
-        top_cut: int,
-        bottom_cut: int,
+        context: _PointSearchContext,
     ) -> tuple[int, int]:
-        width, height = img_size
-        min_col = left_cut
-        max_col = width - 1 - right_cut
-        min_row = top_cut
-        max_row = height - 1 - bottom_cut
-        for i in range(max_row, min_row - 1, -1):
-            for j in range(max_col, min_col - 1, -1):
-                if pixel_at(pixels, width, i, j) != color:
+        for i in range(context.max_row, context.min_row - 1, -1):
+            for j in range(context.max_col, context.min_col - 1, -1):
+                if pixel_at(context.pixels, context.width, i, j) != context.color:
                     return (j, i)
-        return (max_col, max_row)
+        return (context.max_col, context.max_row)
     
