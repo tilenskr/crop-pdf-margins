@@ -19,7 +19,14 @@ EXTRACTOR_MAPPING: dict[str, type[BoundsExtractor]] = {
 }
 
 
-def get_bounds_extractor(name: str, borders: FourBorders) -> BoundsExtractor:
+def get_bounds_extractor(
+    name: str,
+    borders: FourBorders,
+    detect_header_footer: bool,
+) -> BoundsExtractor:
+    if name == "histogram":
+        return HistogramBoundsExtractor(borders, detect_header_footer)
+
     try:
         cls = EXTRACTOR_MAPPING[name]
     except KeyError:

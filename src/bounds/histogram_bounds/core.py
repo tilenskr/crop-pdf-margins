@@ -25,7 +25,8 @@ class _PointSearchContext:
 
 
 class HistogramBoundsExtractor(BoundsExtractor):
-    def __init__(self, borders, detect_header_footer: bool = True):
+    _detect_header_footer: bool
+    def __init__(self, borders, detect_header_footer: bool):
         super().__init__(borders)
         self._detect_header_footer = detect_header_footer
 

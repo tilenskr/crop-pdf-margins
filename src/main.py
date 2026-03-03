@@ -66,6 +66,14 @@ def main():
             "`ocr` uses 500."
         ),
     )
+    parser.add_argument(
+        "--detect-header-footer",
+        action="store_true",
+        help=(
+            "Preprocess repeated header/footer regions before histogram bounds "
+            "detection. Applicable only to `histogram`."
+        ),
+    )
 
     args = parser.parse_args()
     file_name = args.name if args.name is not None else args.input.name
@@ -78,6 +86,7 @@ def main():
         borders=borders,
         cropper_name=args.cropper,
         dpi=args.dpi,
+        detect_header_footer=args.detect_header_footer,
     )
     process_pdf(request)
 
