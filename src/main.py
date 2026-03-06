@@ -3,6 +3,7 @@ from pathlib import Path
 
 from borders import BorderSpec, BorderUnit, FourBorders, expand_css_border, parse_border
 from bounds import EXTRACTOR_MAPPING
+from bounds.histogram_bounds.header_footer import HeaderFooterMode
 from crop import CROPPER_MAPPING
 from processing import ProcessPdfRequest, process_pdf
 
@@ -68,14 +69,27 @@ def main():
     )
     parser.add_argument(
         "--detect-header-footer",
-        action="store_true",
+        type=parse_header_footer_mode,
+        choices=list(HeaderFooterMode),
+        default=None,
         help=(
-            "Preprocess repeated header/footer regions before histogram bounds "
+            "Detect repeated header/footer regions before histogram bounds "
             "detection. Applicable only to `histogram`."
+        ),
+    )
+    parser.add_argument(
+        "--allow-partial-header-footer",
+        type=parse_header_footer_mode,
+        choices=list(HeaderFooterMode),
+        default=None,
+        help=(
+            "Allow selected header/footer sides to be cut even when the paired "
+            "side does not match on a page. Applicable only to `histogram`."
         ),
     )
 
     args = parser.parse_args()
+    validate_header_footer_options(parser, args)
     file_name = args.name if args.name is not None else args.input.name
     output = args.output_dir / file_name
     borders = validate_and_expand_border(parser, args.border)
@@ -86,7 +100,8 @@ def main():
         borders=borders,
         cropper_name=args.cropper,
         dpi=args.dpi,
-        detect_header_footer=args.detect_header_footer,
+        detect_header_footer_mode=args.detect_header_footer,
+        allow_partial_header_footer_mode=args.allow_partial_header_footer,
     )
     process_pdf(request)
 
@@ -108,11 +123,58 @@ def validate_dpi(raw_value: str) -> int:
     return dpi
 
 
+def parse_header_footer_mode(raw_value: str) -> HeaderFooterMode:
+    try:
+        return HeaderFooterMode(raw_value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            "Header/footer mode must be one of: header, footer, both."
+        )
+
+
 def validate_and_expand_border(parser, raw_specs) -> FourBorders:
     try:
         return expand_css_border(raw_specs)
     except ValueError as e:
         return parser.error(e)
+
+
+def validate_header_footer_options(parser, args) -> None:
+    if args.bounds_extractor != "histogram":
+        if args.detect_header_footer is not None or args.allow_partial_header_footer is not None:
+            parser.error(
+                "`--detect-header-footer` and `--allow-partial-header-footer` "
+                "are applicable only to `histogram`."
+            )
+        return
+
+    detect_mode = args.detect_header_footer
+    allow_partial_mode = args.allow_partial_header_footer
+
+    if allow_partial_mode is None:
+        return
+    if detect_mode is None:
+        parser.error("`--allow-partial-header-footer` requires `--detect-header-footer`.")
+    if not mode_includes_requested_sides(detect_mode, allow_partial_mode):
+        parser.error(
+            "`--allow-partial-header-footer` must be a subset of "
+            "`--detect-header-footer`."
+        )
+
+
+def mode_includes_requested_sides(
+    detect_mode: HeaderFooterMode,
+    requested_mode: HeaderFooterMode,
+) -> bool:
+    detect_sides = get_mode_sides(detect_mode)
+    requested_sides = get_mode_sides(requested_mode)
+    return requested_sides.issubset(detect_sides)
+
+
+def get_mode_sides(mode: HeaderFooterMode) -> set[HeaderFooterMode]:
+    if mode is HeaderFooterMode.BOTH:
+        return {HeaderFooterMode.HEADER, HeaderFooterMode.FOOTER}
+    return {mode}
 
 
 if __name__ == "__main__":

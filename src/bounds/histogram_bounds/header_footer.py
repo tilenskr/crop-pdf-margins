@@ -39,6 +39,12 @@ class _BandKind(Enum):
     FOOTER = "footer"
 
 
+class HeaderFooterMode(Enum):
+    HEADER = "header"
+    FOOTER = "footer"
+    BOTH = "both"
+
+
 @dataclass
 class _BandDetectionThresholds:
     """
@@ -74,7 +80,12 @@ class _BandDetectionThresholds:
 def detect_header_footer_cuts(
     doc: pymupdf.Document,
     dpi: int | None,
+    detect_mode: HeaderFooterMode | None,
+    allow_partial_mode: HeaderFooterMode | None,
 ) -> list[HeaderFooterCuts]:
+    if detect_mode is None:
+        return [HeaderFooterCuts() for _ in range(doc.page_count)]
+
     page_candidates: list[_PageCandidate] = []
     for i in range(doc.page_count):
         page = doc.load_page(i)
@@ -87,22 +98,29 @@ def detect_header_footer_cuts(
 
     # The minimum number of pages that must share the same detected header or footer pattern before it is recognized document-level header or footer.
     support_threshold = max(3, ceil(doc.page_count * 0.4))
-    header_cut = _get_repeated_cut(
-        [candidate.header_cut for candidate in page_candidates],
-        tolerance,
-        support_threshold,
-    )
-    footer_cut = _get_repeated_cut(
-        [candidate.footer_cut for candidate in page_candidates],
-        tolerance,
-        support_threshold,
-    )
+    header_cut = None
+    if _mode_includes_header(detect_mode):
+        header_cut = _get_repeated_cut(
+            [candidate.header_cut for candidate in page_candidates],
+            tolerance,
+            support_threshold,
+        )
+
+    footer_cut = None
+    if _mode_includes_footer(detect_mode):
+        footer_cut = _get_repeated_cut(
+            [candidate.footer_cut for candidate in page_candidates],
+            tolerance,
+            support_threshold,
+        )
 
     return _get_matching_page_cuts(
         page_candidates=page_candidates,
         repeated_header_cut=header_cut,
         repeated_footer_cut=footer_cut,
         tolerance=tolerance,
+        detect_mode=detect_mode,
+        allow_partial_mode=allow_partial_mode,
     )
 
 
@@ -335,6 +353,8 @@ def _get_matching_page_cuts(
     repeated_header_cut: int | None,
     repeated_footer_cut: int | None,
     tolerance: int,
+    detect_mode: HeaderFooterMode,
+    allow_partial_mode: HeaderFooterMode | None,
 ) -> list[HeaderFooterCuts]:
     """
     Return per-page cuts only for candidates matching the repeated pattern.
@@ -342,15 +362,100 @@ def _get_matching_page_cuts(
     """
     page_cuts: list[HeaderFooterCuts] = []
     for candidate in page_candidates:
+        header_matches = _candidate_matches(
+            candidate_cut=candidate.header_cut,
+            repeated_cut=repeated_header_cut,
+            tolerance=tolerance,
+        )
+        footer_matches = _candidate_matches(
+            candidate_cut=candidate.footer_cut,
+            repeated_cut=repeated_footer_cut,
+            tolerance=tolerance,
+        )
+
         top_cut = 0
-        if repeated_header_cut is not None and candidate.header_cut is not None:
-            if abs(candidate.header_cut - repeated_header_cut) <= tolerance:
-                top_cut = candidate.header_cut
+        if _should_apply_header_cut(
+            detect_mode=detect_mode,
+            allow_partial_mode=allow_partial_mode,
+            header_matches=header_matches,
+            footer_matches=footer_matches,
+            repeated_footer_cut=repeated_footer_cut,
+        ):
+            top_cut = candidate.header_cut or 0
 
         bottom_cut = 0
-        if repeated_footer_cut is not None and candidate.footer_cut is not None:
-            if abs(candidate.footer_cut - repeated_footer_cut) <= tolerance:
-                bottom_cut = candidate.footer_cut
+        if _should_apply_footer_cut(
+            detect_mode=detect_mode,
+            allow_partial_mode=allow_partial_mode,
+            header_matches=header_matches,
+            footer_matches=footer_matches,
+            repeated_header_cut=repeated_header_cut,
+        ):
+            bottom_cut = candidate.footer_cut or 0
 
         page_cuts.append(HeaderFooterCuts(top_cut=top_cut, bottom_cut=bottom_cut))
     return page_cuts
+
+
+def _candidate_matches(
+    candidate_cut: int | None,
+    repeated_cut: int | None,
+    tolerance: int,
+) -> bool:
+    """Return whether a page-local cut matches the repeated document-level cut.
+
+    Example:
+    repeated_cut = 23, candidate_cut = 24, tolerance = 3 -> True
+    repeated_cut = 23, candidate_cut = 80, tolerance = 3 -> False
+    """
+    if repeated_cut is None or candidate_cut is None:
+        return False
+    return abs(candidate_cut - repeated_cut) <= tolerance
+
+
+def _should_apply_header_cut(
+    detect_mode: HeaderFooterMode,
+    allow_partial_mode: HeaderFooterMode | None,
+    header_matches: bool,
+    footer_matches: bool,
+    repeated_footer_cut: int | None,
+) -> bool:
+    if not _mode_includes_header(detect_mode):
+        return False
+    if not header_matches:
+        return False
+    if not _mode_includes_footer(detect_mode):
+        return True
+    if repeated_footer_cut is None:
+        return True
+    if footer_matches:
+        return True
+    return _mode_includes_header(allow_partial_mode)
+
+
+def _should_apply_footer_cut(
+    detect_mode: HeaderFooterMode,
+    allow_partial_mode: HeaderFooterMode | None,
+    header_matches: bool,
+    footer_matches: bool,
+    repeated_header_cut: int | None,
+) -> bool:
+    if not _mode_includes_footer(detect_mode):
+        return False
+    if not footer_matches:
+        return False
+    if not _mode_includes_header(detect_mode):
+        return True
+    if repeated_header_cut is None:
+        return True
+    if header_matches:
+        return True
+    return _mode_includes_footer(allow_partial_mode)
+
+
+def _mode_includes_header(mode: HeaderFooterMode | None) -> bool:
+    return mode in (HeaderFooterMode.HEADER, HeaderFooterMode.BOTH)
+
+
+def _mode_includes_footer(mode: HeaderFooterMode | None) -> bool:
+    return mode in (HeaderFooterMode.FOOTER, HeaderFooterMode.BOTH)

@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from ..base import BoundsExtractor
 from .edge_cuts import get_border_cuts
-from .header_footer import HeaderFooterCuts, detect_header_footer_cuts
+from .header_footer import HeaderFooterCuts, HeaderFooterMode, detect_header_footer_cuts
 from .raster import pixel_at
 
 
@@ -25,10 +25,17 @@ class _PointSearchContext:
 
 
 class HistogramBoundsExtractor(BoundsExtractor):
-    _detect_header_footer: bool
-    def __init__(self, borders, detect_header_footer: bool):
+    _detect_header_footer_mode: HeaderFooterMode | None
+    _allow_partial_header_footer_mode: HeaderFooterMode | None
+    def __init__(
+        self,
+        borders,
+        detect_header_footer_mode: HeaderFooterMode | None,
+        allow_partial_header_footer_mode: HeaderFooterMode | None,
+    ):
         super().__init__(borders)
-        self._detect_header_footer = detect_header_footer
+        self._detect_header_footer_mode = detect_header_footer_mode
+        self._allow_partial_header_footer_mode = allow_partial_header_footer_mode
 
     @override
     def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
@@ -104,9 +111,12 @@ class HistogramBoundsExtractor(BoundsExtractor):
     def _get_header_footer_cuts(
         self, doc: pymupdf.Document, dpi: int | None
     ) -> list[HeaderFooterCuts]:
-        if not self._detect_header_footer:
-            return [HeaderFooterCuts() for _ in range(doc.page_count)]
-        return detect_header_footer_cuts(doc, dpi)
+        return detect_header_footer_cuts(
+            doc,
+            dpi,
+            detect_mode=self._detect_header_footer_mode,
+            allow_partial_mode=self._allow_partial_header_footer_mode,
+        )
 
     def _get_leftmost_point(
         self,

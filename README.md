@@ -44,7 +44,7 @@ pdm run tests
 ### Command-Line Usage
 For more control, you can run the program with specific options:
 ```bash
-usage: main.py -i INPUT -d OUTPUT_DIR -be {page_bounds,text_page,dict_text,text_page_images,dict_text_images,ocr,histogram} -c {box,scale} [-n NAME] [-b BORDER [BORDER ...]] [--dpi DPI] [--detect-header-footer]
+usage: main.py -i INPUT -d OUTPUT_DIR -be {page_bounds,text_page,dict_text,text_page_images,dict_text_images,ocr,histogram} -c {box,scale} [-n NAME] [-b BORDER [BORDER ...]] [--dpi DPI] [--detect-header-footer {header,footer,both}] [--allow-partial-header-footer {header,footer,both}]
 ```
 
 ### Command-Line Parameters
@@ -69,9 +69,14 @@ usage: main.py -i INPUT -d OUTPUT_DIR -be {page_bounds,text_page,dict_text,text_
   - Applicable only to `histogram` and `ocr`.
   - If unset: `histogram` uses renderer default (`None`), `ocr` uses `500`.
   - Setting `--dpi` usually increases execution time (higher DPI is slower).
-- **`--detect-header-footer`**: Preprocess repeated header/footer regions before
-  histogram bounds detection.
+- **`--detect-header-footer {header,footer,both}`**: Detect repeated header/footer
+  regions before histogram bounds detection.
   - Applicable only to `histogram`.
+- **`--allow-partial-header-footer {header,footer,both}`**: Allow selected
+  sides to be cut even when the paired side does not match on a page.
+  - Applicable only to `histogram`.
+  - Requires `--detect-header-footer`.
+  - Must be a subset of `--detect-header-footer` (e.g. detect=`both`, allow=`footer`).
 - **`-h`**: Display the help message.
 
 ## Limitations
