@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from ..base import BoundsExtractor
 from .edge_cuts import get_border_cuts
-from .header_footer import HeaderFooterCuts, HeaderFooterMode, detect_header_footer_cuts
+from .header_footer import HeaderFooterDetector, HeaderFooterMode
 from .raster import pixel_at
 
 
@@ -44,13 +44,13 @@ class HistogramBoundsExtractor(BoundsExtractor):
             def on_page_done() -> None:
                 progress.update(1)
 
-            header_footer_cuts = detect_header_footer_cuts(
-                doc,
-                dpi,
+            detector = HeaderFooterDetector(
+                doc=doc,
+                dpi=dpi,
                 detect_mode=self._detect_header_footer_mode,
                 allow_partial_mode=self._allow_partial_header_footer_mode,
-                on_page_done=on_page_done,
             )
+            header_footer_cuts = detector.detect_header_footer_cuts(on_page_done=on_page_done)
             rectangles: list[pymupdf.Rect] = []
             for i in range(doc.page_count):
                 page = doc.load_page(i)
@@ -163,4 +163,3 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 if pixel_at(context.pixels, context.width, i, j) != context.color:
                     return (j, i)
         return (context.max_col, context.max_row)
-    
