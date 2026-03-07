@@ -75,7 +75,7 @@ class _BandDetectionThresholds:
         # If a band is taller than 12% of page height, it is probably not a
         # header or footer.
         self.max_band_height = max(1, int(height * 0.12))
-        self.min_gap = max(4, int(height * 0.02))
+        self.min_gap = max(4, int(height * 0.01))
 
 
 class HeaderFooterDetector:
