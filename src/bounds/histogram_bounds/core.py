@@ -41,10 +41,15 @@ class HistogramBoundsExtractor(BoundsExtractor):
     def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
         total_steps = doc.page_count * 2
         with tqdm(total=total_steps, desc="Histogram", unit="page") as progress:
-            header_footer_cuts = self._get_header_footer_cuts(
+            def on_page_done() -> None:
+                progress.update(1)
+
+            header_footer_cuts = detect_header_footer_cuts(
                 doc,
                 dpi,
-                on_page_done=lambda: progress.update(1),
+                detect_mode=self._detect_header_footer_mode,
+                allow_partial_mode=self._allow_partial_header_footer_mode,
+                on_page_done=on_page_done,
             )
             rectangles: list[pymupdf.Rect] = []
             for i in range(doc.page_count):
@@ -115,20 +120,6 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 rectangles.append(rect)
                 progress.update(1)
             return rectangles
-
-    def _get_header_footer_cuts(
-        self,
-        doc: pymupdf.Document,
-        dpi: int | None,
-        on_page_done=None,
-    ) -> list[HeaderFooterCuts]:
-        return detect_header_footer_cuts(
-            doc,
-            dpi,
-            detect_mode=self._detect_header_footer_mode,
-            allow_partial_mode=self._allow_partial_header_footer_mode,
-            on_page_done=on_page_done,
-        )
 
     def _get_leftmost_point(
         self,
