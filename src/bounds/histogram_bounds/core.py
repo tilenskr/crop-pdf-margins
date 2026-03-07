@@ -39,83 +39,95 @@ class HistogramBoundsExtractor(BoundsExtractor):
 
     @override
     def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
-        header_footer_cuts = self._get_header_footer_cuts(doc, dpi)
-        rectangles: list[pymupdf.Rect] = []
-        for i in tqdm(range(doc.page_count)):
-            page = doc.load_page(i)
-            pix: pymupdf.Pixmap = (
-                page.get_pixmap(dpi=dpi) if dpi is not None else page.get_pixmap()
-            )  # type:ignore
-            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            pixels: list[tuple[int, int, int]] = list(img.getdata())
-            counter = Counter(pixels)
-            dominant_color, _ = counter.most_common(1)[0]
-            vertical_cuts = header_footer_cuts[i]
-            left_cut, top_cut, right_cut, bottom_cut = get_border_cuts(
-                pixels,
-                img.size,
-                dominant_color,
-                vertical_cuts.top_cut,
-                vertical_cuts.bottom_cut,
+        total_steps = doc.page_count * 2
+        with tqdm(total=total_steps, desc="Histogram", unit="page") as progress:
+            header_footer_cuts = self._get_header_footer_cuts(
+                doc,
+                dpi,
+                on_page_done=lambda: progress.update(1),
             )
-            search_context = _PointSearchContext(
-                pixels=pixels,
-                width=img.width,
-                height=img.height,
-                color=dominant_color,
-                min_col=left_cut,
-                max_col=img.width - 1 - right_cut,
-                min_row=top_cut,
-                max_row=img.height - 1 - bottom_cut,
-            )
+            rectangles: list[pymupdf.Rect] = []
+            for i in range(doc.page_count):
+                page = doc.load_page(i)
+                pix: pymupdf.Pixmap = (
+                    page.get_pixmap(dpi=dpi) if dpi is not None else page.get_pixmap()
+                )  # type:ignore
+                img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                pixels: list[tuple[int, int, int]] = list(img.getdata())
+                counter = Counter(pixels)
+                dominant_color, _ = counter.most_common(1)[0]
+                vertical_cuts = header_footer_cuts[i]
+                left_cut, top_cut, right_cut, bottom_cut = get_border_cuts(
+                    pixels,
+                    img.size,
+                    dominant_color,
+                    vertical_cuts.top_cut,
+                    vertical_cuts.bottom_cut,
+                )
+                search_context = _PointSearchContext(
+                    pixels=pixels,
+                    width=img.width,
+                    height=img.height,
+                    color=dominant_color,
+                    min_col=left_cut,
+                    max_col=img.width - 1 - right_cut,
+                    min_row=top_cut,
+                    max_row=img.height - 1 - bottom_cut,
+                )
 
-            leftmost_point = self._get_leftmost_point(search_context)
-            if self._is_empty_page(leftmost_point):
+                leftmost_point = self._get_leftmost_point(search_context)
+                if self._is_empty_page(leftmost_point):
+                    rect = self._get_rectangle(
+                        bounds=pymupdf.Rect(),
+                        has_content=False,
+                        page_rect=page.rect,
+                    )
+                    rectangles.append(rect)
+                    progress.update(1)
+                    continue
+                topmost_point = self._get_topmost_point(search_context)
+                rightmost_point = self._get_rightmost_point(search_context)
+                bottommost_point = self._get_bottommost_point(search_context)
+
+                x0 = leftmost_point[0]
+                y0 = topmost_point[1]
+                x1 = rightmost_point[0]
+                y1 = bottommost_point[1]
+
+                if dpi is not None:
+                    # Pixel coordinates at custom DPI must be mapped back to PDF points.
+                    scale_factor = 72.0 / dpi
+                    x0 *= scale_factor
+                    y0 *= scale_factor
+                    x1 *= scale_factor
+                    y1 *= scale_factor
+
                 rect = self._get_rectangle(
-                    bounds=pymupdf.Rect(),
-                    has_content=False,
+                    bounds=pymupdf.Rect(
+                        x0=x0,
+                        y0=y0,
+                        x1=x1,
+                        y1=y1,
+                    ),
+                    has_content=True,
                     page_rect=page.rect,
                 )
                 rectangles.append(rect)
-                continue
-            topmost_point = self._get_topmost_point(search_context)
-            rightmost_point = self._get_rightmost_point(search_context)
-            bottommost_point = self._get_bottommost_point(search_context)
-
-            x0 = leftmost_point[0]
-            y0 = topmost_point[1]
-            x1 = rightmost_point[0]
-            y1 = bottommost_point[1]
-
-            if dpi is not None:
-                # Pixel coordinates at custom DPI must be mapped back to PDF points.
-                scale_factor = 72.0 / dpi
-                x0 *= scale_factor
-                y0 *= scale_factor
-                x1 *= scale_factor
-                y1 *= scale_factor
-
-            rect = self._get_rectangle(
-                bounds=pymupdf.Rect(
-                    x0=x0,
-                    y0=y0,
-                    x1=x1,
-                    y1=y1,
-                ),
-                has_content=True,
-                page_rect=page.rect,
-            )
-            rectangles.append(rect)
-        return rectangles
+                progress.update(1)
+            return rectangles
 
     def _get_header_footer_cuts(
-        self, doc: pymupdf.Document, dpi: int | None
+        self,
+        doc: pymupdf.Document,
+        dpi: int | None,
+        on_page_done=None,
     ) -> list[HeaderFooterCuts]:
         return detect_header_footer_cuts(
             doc,
             dpi,
             detect_mode=self._detect_header_footer_mode,
             allow_partial_mode=self._allow_partial_header_footer_mode,
+            on_page_done=on_page_done,
         )
 
     def _get_leftmost_point(

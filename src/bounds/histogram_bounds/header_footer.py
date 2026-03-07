@@ -1,4 +1,5 @@
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import InitVar, dataclass, field
 from enum import Enum
 from math import ceil
@@ -82,14 +83,20 @@ def detect_header_footer_cuts(
     dpi: int | None,
     detect_mode: HeaderFooterMode | None,
     allow_partial_mode: HeaderFooterMode | None,
+    on_page_done: Callable[[], None] | None = None,
 ) -> list[HeaderFooterCuts]:
     if detect_mode is None:
+        if on_page_done is not None:
+            for _ in range(doc.page_count):
+                on_page_done()
         return [HeaderFooterCuts() for _ in range(doc.page_count)]
 
     page_candidates: list[_PageCandidate] = []
     for i in range(doc.page_count):
         page = doc.load_page(i)
         page_candidates.append(_detect_page_candidate(page, dpi))
+        if on_page_done is not None:
+            on_page_done()
 
     if not page_candidates:
         return []
