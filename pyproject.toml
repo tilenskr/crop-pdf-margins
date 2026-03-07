@@ -29,5 +29,5 @@ convert_best = [
 ]
 
 [tool.pdm.scripts.tests]
-cmd = "python -m unittest discover -s src/bounds/tests -p test_*.py -v"
+cmd = "python -m unittest discover -s src -t . -p test_*.py -v"
 env = { PYTHONPATH = ".:src" }

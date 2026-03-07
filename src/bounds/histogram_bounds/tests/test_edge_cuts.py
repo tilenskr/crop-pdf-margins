@@ -1,13 +1,10 @@
 import unittest
 
-from src.borders import BorderSpec, BorderUnit, FourBorders
-from src.bounds.histogram_bounds import HistogramBoundsExtractor
+from src.bounds.histogram_bounds.edge_cuts import get_border_cuts
 
 
-class HistogramBoundsExtractorBorderTests(unittest.TestCase):
+class EdgeCutTests(unittest.TestCase):
     def setUp(self) -> None:
-        zero = BorderSpec(0.0, BorderUnit.POINT)
-        self.extractor = HistogramBoundsExtractor(FourBorders(zero, zero, zero, zero))
         self.bg = (255, 255, 255)
 
     def _build_pixels(
@@ -47,7 +44,7 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         self._set_row(pixels, width, 0, border)
         self._set_row(pixels, width, 1, border)
 
-        cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
+        cuts = get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (0, 2, 0, 0))
 
     def test_detects_bottom_border_lines(self) -> None:
@@ -57,7 +54,7 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         self._set_row(pixels, width, height - 1, border)
         self._set_row(pixels, width, height - 2, border)
 
-        cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
+        cuts = get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (0, 0, 0, 2))
 
     def test_detects_left_border_columns(self) -> None:
@@ -67,7 +64,7 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         self._set_col(pixels, width, height, 0, border)
         self._set_col(pixels, width, height, 1, border)
 
-        cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
+        cuts = get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (2, 0, 0, 0))
 
     def test_detects_right_border_columns(self) -> None:
@@ -77,7 +74,7 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         self._set_col(pixels, width, height, width - 1, border)
         self._set_col(pixels, width, height, width - 2, border)
 
-        cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
+        cuts = get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (0, 0, 2, 0))
 
     def test_does_not_trim_non_uniform_edge(self) -> None:
@@ -87,7 +84,7 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         self._set_row(pixels, width, 0, border)
         pixels[0] = self.bg
 
-        cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
+        cuts = get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (0, 0, 0, 0))
 
     def test_detects_uniform_border_on_all_sides(self) -> None:
@@ -100,8 +97,25 @@ class HistogramBoundsExtractorBorderTests(unittest.TestCase):
         self._set_col(pixels, width, height, 0, border)
         self._set_col(pixels, width, height, width - 1, border)
 
-        cuts = self.extractor._get_border_cuts(pixels, (width, height), self.bg)
+        cuts = get_border_cuts(pixels, (width, height), self.bg)
         self.assertEqual(cuts, (1, 1, 1, 1))
+
+    def test_respects_initial_vertical_cuts(self) -> None:
+        width, height = 10, 10
+        pixels = self._build_pixels(width, height, self.bg)
+        border = (0, 0, 0)
+
+        self._set_row(pixels, width, 2, border)
+        self._set_row(pixels, width, height - 3, border)
+
+        cuts = get_border_cuts(
+            pixels,
+            (width, height),
+            self.bg,
+            initial_top_cut=2,
+            initial_bottom_cut=2,
+        )
+        self.assertEqual(cuts, (0, 3, 0, 3))
 
 
 if __name__ == "__main__":
