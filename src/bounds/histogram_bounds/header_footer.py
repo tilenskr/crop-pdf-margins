@@ -96,9 +96,6 @@ class HeaderFooterDetector:
         on_page_done: Callable[[], None] | None = None,
     ) -> list[HeaderFooterCuts]:
         if self.detect_mode is None:
-            if on_page_done is not None:
-                for _ in range(self.doc.page_count):
-                    on_page_done()
             return [HeaderFooterCuts() for _ in range(self.doc.page_count)]
 
         page_candidates: list[_PageCandidate] = []

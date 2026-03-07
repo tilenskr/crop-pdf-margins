@@ -39,7 +39,9 @@ class HistogramBoundsExtractor(BoundsExtractor):
 
     @override
     def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
-        total_steps = doc.page_count * 2
+        total_steps = doc.page_count
+        if self._detect_header_footer_mode is not None:
+            total_steps += doc.page_count
         with tqdm(total=total_steps, desc="Histogram", unit="page") as progress:
             def on_page_done() -> None:
                 progress.update(1)
