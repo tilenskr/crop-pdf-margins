@@ -257,29 +257,29 @@ class HeaderFooterDetector:
             if band.height > thresholds.max_band_height:
                 continue
 
-            next_band = self._find_next_band_with_gap(
+            next_band_index = self._find_next_band_index_with_gap(
                 bands,
                 index + 1,
                 band.end_row,
                 thresholds.min_gap,
             )
-            if next_band is None:
+            if next_band_index is None:
                 continue
-            return band.end_row + 1
+            return bands[next_band_index - 1].end_row + 1
         return None
 
     @staticmethod
-    def _find_next_band_with_gap(
+    def _find_next_band_index_with_gap(
         bands: list[_ContentRowBand],
         start_index: int,
         previous_end_row: int,
         min_gap: int,
-    ) -> _ContentRowBand | None:
+    ) -> int | None:
         for index in range(start_index, len(bands)):
             band = bands[index]
             gap = band.start_row - previous_end_row - 1
             if gap >= min_gap:
-                return band
+                return index
         return None
     
     @staticmethod

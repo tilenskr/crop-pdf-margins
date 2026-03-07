@@ -47,5 +47,44 @@ class HeaderFooterFooterCutTests(unittest.TestCase):
         self.assertEqual(cut, 100)
 
 
+class HeaderFooterHeaderCutTests(unittest.TestCase):
+    def _detector(self) -> HeaderFooterDetector:
+        return HeaderFooterDetector(
+            doc=MagicMock(page_count=0),
+            dpi=None,
+            detect_mode=HeaderFooterMode.BOTH,
+            allow_partial_mode=None,
+        )
+
+    def test_header_cut_uses_last_header_band_before_body_gap(self) -> None:
+        detector = self._detector()
+        height = 1000
+        bands = [
+            _ContentRowBand(start_row=60, end_row=80),     # header part 1
+            _ContentRowBand(start_row=100, end_row=120),   # header part 2
+            _ContentRowBand(start_row=260, end_row=700),   # body
+        ]
+
+        cut = detector._detect_header_cut(bands, height)
+
+        # Cut ends after the last header band before the body gap.
+        self.assertEqual(cut, 121)
+
+    def test_header_cut_stays_on_first_band_when_nearby_band_exists(self) -> None:
+        detector = self._detector()
+        height = 1000
+        bands = [
+            _ContentRowBand(start_row=60, end_row=80),     # header
+            _ContentRowBand(start_row=95, end_row=100),    # nearby band
+            _ContentRowBand(start_row=260, end_row=700),   # body
+        ]
+
+        cut = detector._detect_header_cut(bands, height)
+
+        # Nearby band is treated as adjacent context, so cut moves after
+        # the second band.
+        self.assertEqual(cut, 101)
+
+
 if __name__ == "__main__":
     unittest.main()
