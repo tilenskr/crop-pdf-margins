@@ -94,7 +94,7 @@ def detect_header_footer_cuts(
     page_candidates: list[_PageCandidate] = []
     for i in range(doc.page_count):
         page = doc.load_page(i)
-        page_candidates.append(_detect_page_candidate(page, dpi))
+        page_candidates.append(_detect_page_candidate(page, dpi, detect_mode))
         if on_page_done is not None:
             on_page_done()
 
@@ -131,7 +131,11 @@ def detect_header_footer_cuts(
     )
 
 
-def _detect_page_candidate(page: pymupdf.Page, dpi: int | None) -> _PageCandidate:
+def _detect_page_candidate(
+    page: pymupdf.Page,
+    dpi: int | None,
+    detect_mode: HeaderFooterMode,
+) -> _PageCandidate:
     pix: pymupdf.Pixmap = (
         page.get_pixmap(dpi=dpi) if dpi is not None else page.get_pixmap()
     )  # type:ignore
@@ -153,10 +157,13 @@ def _detect_page_candidate(page: pymupdf.Page, dpi: int | None) -> _PageCandidat
     )
     bands = _get_content_row_bands(active_rows)
 
+    header_cut = _detect_header_cut(bands, img.height) if _mode_includes_header(detect_mode) else None
+    footer_cut = _detect_footer_cut(bands, img.height) if _mode_includes_footer(detect_mode) else None
+
     return _PageCandidate(
         height=img.height,
-        header_cut=_detect_header_cut(bands, img.height),
-        footer_cut=_detect_footer_cut(bands, img.height),
+        header_cut=header_cut,
+        footer_cut=footer_cut,
     )
 
 
