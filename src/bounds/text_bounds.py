@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import TypedDict, override
 import pymupdf
 
+from page_layout import PageCropLayout
 from .base import BoundsExtractor
 
 
@@ -17,9 +18,9 @@ class TextBlocksBoundsExtractor(BoundsExtractor, ABC):
 
     def get_bounds(
         self, doc: pymupdf.Document, dpi: int | None
-    ) -> list[pymupdf.Rect]:
+    ) -> list[PageCropLayout]:
         _ = dpi
-        rectangles: list[pymupdf.Rect] = []
+        rectangles: list[PageCropLayout] = []
         for page in doc:
             # initialize to extremes
             x0, y0 = float("inf"), float("inf")
@@ -36,7 +37,7 @@ class TextBlocksBoundsExtractor(BoundsExtractor, ABC):
                 x0, y0 = min(x0, img_rect.x0), min(y0, img_rect.y0)
                 x1, y1 = max(x1, img_rect.x1), max(y1, img_rect.y1)
 
-            rect = self._get_rectangle(
+            rect = self._get_layout(
                  bounds=pymupdf.Rect(
                     x0=x0,
                     y0=y0,

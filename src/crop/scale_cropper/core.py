@@ -3,6 +3,7 @@ import warnings
 from typing import Any, override
 
 import pymupdf
+from page_layout import PageCropLayout
 
 from crop.scale_cropper.links import copy_links, transform_link_destination
 from crop.scale_cropper.internal_destinations import InternalDestinationResolver
@@ -13,33 +14,36 @@ from .annotations import copy_annotations
 
 class ScaleCropper(Cropper):
     @override
-    def crop(self, bounds: Sequence[pymupdf.Rect]) -> pymupdf.Document:
+    def crop(self, bounds: Sequence[PageCropLayout]) -> pymupdf.Document:
         output_doc: pymupdf.Document = pymupdf.open()
-        for page_num, clipped_rect in enumerate(bounds):
+        for page_num, layout in enumerate(bounds):
             src_page = self._doc[page_num]
             width, height = src_page.rect.width, src_page.rect.height
             new_page: pymupdf.Page = output_doc.new_page(width=width, height=height)  # type: ignore[reportUnknownMemberType]
 
-            # draw clipped area into full page
+            if layout.destination_rect.is_empty or layout.destination_rect.is_infinite:
+                continue
+
+            # draw clipped area into content rect
             new_page.show_pdf_page(  # type: ignore[reportUnknownMemberType]
-                pymupdf.Rect(0, 0, width, height),
+                layout.destination_rect,
                 self._doc,
                 page_num,
-                clip=clipped_rect,
+                clip=layout.content_rect,
             )
         self._copy_properties(bounds, output_doc)
         return output_doc
 
     def _copy_properties(
-        self, page_bounds: Sequence[pymupdf.Rect], dst: pymupdf.Document
+        self, page_layouts: Sequence[PageCropLayout], dst: pymupdf.Document
     ):
         self._copy_metadata(dst)
         self._copy_page_labels(dst)
-        self._copy_table_of_contents(dst, page_bounds)
+        self._copy_table_of_contents(dst, page_layouts)
         self._copy_attachments(dst)
         self._copy_optional_content_groups(dst)
-        copy_annotations(self._doc, page_bounds, dst)
-        copy_links(self._doc, page_bounds, dst)
+        copy_annotations(self._doc, page_layouts, dst)
+        copy_links(self._doc, page_layouts, dst)
 
     def _copy_metadata(self, dst: pymupdf.Document):
         """Copy basic metadata (Title, Author, etc.)."""
@@ -52,7 +56,7 @@ class ScaleCropper(Cropper):
             dst.set_page_labels(labels)  # type:ignore
 
     def _copy_table_of_contents(
-        self, dst: pymupdf.Document, page_bounds: Sequence[pymupdf.Rect]
+        self, dst: pymupdf.Document, page_layouts: Sequence[PageCropLayout]
     ):
         """Copy able-of-Contents / outlines (bookmarks)."""
         toc = self._doc.get_toc(simple=False)  # type:ignore
@@ -63,7 +67,7 @@ class ScaleCropper(Cropper):
         new_toc: list[list[Any]] = []
         for lvl, title, page, dest in toc:
             transformed_dest = transform_link_destination(
-                dest, dst, page_bounds, page, resolver
+                dest, dst, page_layouts, page, resolver
             )
             if transformed_dest:
                 new_toc.append([lvl, title, page, transformed_dest])

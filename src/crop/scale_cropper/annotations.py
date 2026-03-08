@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 import pymupdf
+from page_layout import PageCropLayout
 
 from .annotations_fonts import (extract_font_info,
                                 extract_text_style_from_appearance)
@@ -22,6 +23,14 @@ ANNOT_TYPES_WITHOUT_RECT_PROPERTY = {
     AnnotType.PDF_ANNOT_SQUIGGLY,  # Not tested, because is not available in Adobe Acrobat Reader free version
     AnnotType.PDF_ANNOT_HIGHLIGHT,
 }
+
+
+def _annotation_is_visible(
+    src_annotation: pymupdf.Annot, content_rect: pymupdf.Rect
+) -> bool:
+    annotation_rect = pymupdf.Rect(src_annotation.rect)
+    annotation_rect.intersect(content_rect)
+    return not annotation_rect.is_empty
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,21 +52,28 @@ class AnnotationContext:
 
 def copy_annotations(
     src: pymupdf.Document,
-    src_page_bounds: Sequence[pymupdf.Rect],
+    page_layouts: Sequence[PageCropLayout],
     dst: pymupdf.Document,
 ):
     xref_map: dict[int, int] = {}
     for page_num in range(src.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
+        layout = page_layouts[page_num]
         if not src_page.annots():
+            continue
+        if layout.destination_rect.is_empty or layout.destination_rect.is_infinite:
             continue
 
         coordinate_transformer = CoordinateTransformer(
-            src_page_bounds[page_num], dst_page.rect.width, dst_page.rect.height
+            layout.content_rect,
+            layout.destination_rect,
         )
 
         for src_annotation in src_page.annots():
+            if not _annotation_is_visible(src_annotation, layout.content_rect):
+                continue
+
             annotation_type = AnnotType(src_annotation.type[0])
             new_rect = coordinate_transformer.transform_rect(src_annotation.rect)
             try:

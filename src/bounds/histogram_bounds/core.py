@@ -6,6 +6,7 @@ import pymupdf
 from PIL import Image
 from tqdm import tqdm
 
+from page_layout import PageCropLayout
 from ..base import BoundsExtractor
 from .edge_cuts import get_border_cuts
 from .header_footer import HeaderFooterDetector, HeaderFooterMode
@@ -38,7 +39,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
         self._allow_partial_header_footer_mode = allow_partial_header_footer_mode
 
     @override
-    def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
+    def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[PageCropLayout]:
         total_steps = doc.page_count
         if self._detect_header_footer_mode is not None:
             total_steps += doc.page_count
@@ -53,7 +54,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
                 allow_partial_mode=self._allow_partial_header_footer_mode,
             )
             header_footer_cuts = detector.detect_header_footer_cuts(on_page_done=on_page_done)
-            rectangles: list[pymupdf.Rect] = []
+            rectangles: list[PageCropLayout] = []
             for i in range(doc.page_count):
                 page = doc.load_page(i)
                 pix: pymupdf.Pixmap = (
@@ -84,7 +85,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
 
                 leftmost_point = self._get_leftmost_point(search_context)
                 if self._is_empty_page(leftmost_point):
-                    rect = self._get_rectangle(
+                    rect = self._get_layout(
                         bounds=pymupdf.Rect(),
                         has_content=False,
                         page_rect=page.rect,
@@ -109,7 +110,7 @@ class HistogramBoundsExtractor(BoundsExtractor):
                     x1 *= scale_factor
                     y1 *= scale_factor
 
-                rect = self._get_rectangle(
+                rect = self._get_layout(
                     bounds=pymupdf.Rect(
                         x0=x0,
                         y0=y0,
