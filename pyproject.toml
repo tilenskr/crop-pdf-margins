@@ -17,6 +17,7 @@ distribution = false
 convert = [
   "python", "src/main.py",
   "-i", "<pdf-path>",
+  "--dpi", "200"
   "-d", "output",
   "-b", "1%", "5%", "1%", "5%",
 ]
