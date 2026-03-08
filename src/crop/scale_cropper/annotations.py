@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 import pymupdf
+from page_layout import PageCropLayout
 
 from .annotations_fonts import (extract_font_info,
                                 extract_text_style_from_appearance)
@@ -43,18 +44,22 @@ class AnnotationContext:
 
 def copy_annotations(
     src: pymupdf.Document,
-    src_page_bounds: Sequence[pymupdf.Rect],
+    page_layouts: Sequence[PageCropLayout],
     dst: pymupdf.Document,
 ):
     xref_map: dict[int, int] = {}
     for page_num in range(src.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
+        layout = page_layouts[page_num]
         if not src_page.annots():
+            continue
+        if layout.destination_rect.is_empty or layout.destination_rect.is_infinite:
             continue
 
         coordinate_transformer = CoordinateTransformer(
-            src_page_bounds[page_num], dst_page.rect.width, dst_page.rect.height
+            layout.content_rect,
+            layout.destination_rect,
         )
 
         for src_annotation in src_page.annots():

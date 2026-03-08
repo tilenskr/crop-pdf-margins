@@ -2,17 +2,34 @@ import pymupdf
 
 
 class CoordinateTransformer:
-    def __init__(self, page_bound: pymupdf.Rect, width: float, height: float) -> None:
-        self._page_bound = page_bound
-        self._scale_x = width / page_bound.width
-        self._scale_y = height / page_bound.height
+    def __init__(self, source_rect: pymupdf.Rect, destination_rect: pymupdf.Rect) -> None:
+        self._source_rect = source_rect
+        self._destination_rect = destination_rect
+        if (
+            source_rect.width <= 0
+            or source_rect.height <= 0
+            or destination_rect.width <= 0
+            or destination_rect.height <= 0
+        ):
+            self._scale_x = 0.0
+            self._scale_y = 0.0
+            self._dx = destination_rect.x0
+            self._dy = destination_rect.y0
+            return
+
+        self._scale_x = destination_rect.width / source_rect.width
+        self._scale_y = destination_rect.height / source_rect.height
 
         # MuPDF scales uniformly with the *smaller* factor
         s = min(self._scale_x, self._scale_y)
         self._scale_x = self._scale_y = s
         # centred letter-box margins
-        self._dx = (width - page_bound.width * s) / 2
-        self._dy = (height - page_bound.height * s) / 2
+        self._dx = destination_rect.x0 + (
+            destination_rect.width - source_rect.width * s
+        ) / 2
+        self._dy = destination_rect.y0 + (
+            destination_rect.height - source_rect.height * s
+        ) / 2
 
     # -----------------------------------------------------------------
     # public helpers ---------------------------------------------------
@@ -22,8 +39,8 @@ class CoordinateTransformer:
         Map (x, y) from the *source* coordinate space into the destination.
         """
         return (
-            self._dx + (x - self._page_bound.x0) * self._scale_x,
-            self._dy + (y - self._page_bound.y0) * self._scale_y,
+            self._dx + (x - self._source_rect.x0) * self._scale_x,
+            self._dy + (y - self._source_rect.y0) * self._scale_y,
         )
 
     def transform_rect(self, rect: pymupdf.Rect) -> pymupdf.Rect:

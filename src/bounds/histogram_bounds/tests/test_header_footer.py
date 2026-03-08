@@ -28,8 +28,10 @@ class HeaderFooterFooterCutTests(unittest.TestCase):
 
         cut = detector._detect_footer_cut(bands, height)
 
-        # Cut starts at the first footer band after the body/footer gap.
-        self.assertEqual(cut, 140)
+        # With the smaller minimum-gap threshold, the later footer band counts
+        # as a separate footer candidate once the intermediate gap is large
+        # enough, so the cut starts at the final band.
+        self.assertEqual(cut, 100)
 
     def test_footer_cut_stays_on_last_band_when_nearby_band_exists(self) -> None:
         detector = self._detector()
@@ -67,8 +69,10 @@ class HeaderFooterHeaderCutTests(unittest.TestCase):
 
         cut = detector._detect_header_cut(bands, height)
 
-        # Cut ends after the last header band before the body gap.
-        self.assertEqual(cut, 121)
+        # With the smaller minimum-gap threshold, the second band is no longer
+        # grouped with the first header band, so the cut is placed after the
+        # first band.
+        self.assertEqual(cut, 81)
 
     def test_header_cut_stays_on_first_band_when_nearby_band_exists(self) -> None:
         detector = self._detector()
@@ -81,9 +85,9 @@ class HeaderFooterHeaderCutTests(unittest.TestCase):
 
         cut = detector._detect_header_cut(bands, height)
 
-        # Nearby band is treated as adjacent context, so cut moves after
-        # the second band.
-        self.assertEqual(cut, 101)
+        # The nearby band is separated by more than the reduced minimum gap, so
+        # the cut still lands after the first band.
+        self.assertEqual(cut, 81)
 
 
 if __name__ == "__main__":

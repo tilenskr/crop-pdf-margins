@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Sequence
 
 import pymupdf
+from page_layout import PageCropLayout
 
 
 class Cropper(ABC):
@@ -9,5 +10,5 @@ class Cropper(ABC):
         self._doc = doc
 
     @abstractmethod
-    def crop(self, bounds: Sequence[pymupdf.Rect]) -> pymupdf.Document:
+    def crop(self, bounds: Sequence[PageCropLayout]) -> pymupdf.Document:
         pass

@@ -62,6 +62,8 @@ usage: main.py -i INPUT -d OUTPUT_DIR -be {page_bounds,text_page,dict_text,text_
   - `histogram`: Analyzes pixel color distribution to find content area by trimming dominant background.
 - **`-b BORDER [BORDER ...]`**: Padding around extracted bounds, specified in pixels (e.g., 10.5) or 
                                 percentage (e.g., 5.3%). Supports either a single value (applied to all sides) or four values like in CSS (top, right, bottom, left).
+  - With `scale`, border padding becomes blank output margin after cropping.
+  - With `box`, border padding still expands the visible crop region into surrounding source content.
 - **`-c CROPPER`**: Cropping strategy used to trim page content. Defaults to `scale`.
   - `box`: Crops each page by adjusting visible bounds without scaling or redrawing content.
   - `scale`: Crops each page to given bounds and scales content to full-page size.

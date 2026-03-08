@@ -1,6 +1,7 @@
 from typing import override
 from .base import BoundsExtractor
 import pymupdf
+from page_layout import PageCropLayout
 
 
 class PageBoundsExtractor(BoundsExtractor):
@@ -9,13 +10,13 @@ class PageBoundsExtractor(BoundsExtractor):
     @override
     def get_bounds(
         self, doc: pymupdf.Document, dpi: int | None
-    ) -> list[pymupdf.Rect]:
+    ) -> list[PageCropLayout]:
         _ = dpi
-        rectangles: list[pymupdf.Rect] = []
+        rectangles: list[PageCropLayout] = []
         for page in doc:
             bounds = page.bound()
             # expand it by border_pt (on each side)
-            rect = self._get_rectangle(
+            rect = self._get_layout(
                 bounds=pymupdf.Rect(
                     x0=bounds.x0, y0=bounds.y0, x1=bounds.x1, y1=bounds.y1
                 ),

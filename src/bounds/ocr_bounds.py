@@ -5,17 +5,20 @@ import pytesseract
 from PIL import Image, ImageOps
 from tqdm import tqdm
 
+from page_layout import PageCropLayout
 from .base import BoundsExtractor
 
 
 class OCRBoundsExtractor(BoundsExtractor):
     @override
-    def get_bounds(self, doc: pymupdf.Document, dpi: int | None) -> list[pymupdf.Rect]:
+    def get_bounds(
+        self, doc: pymupdf.Document, dpi: int | None
+    ) -> list[PageCropLayout]:
         dpi_to_use = dpi if dpi is not None else 500
         dpi_pdf = 72.0
         scale_factor = dpi_pdf / dpi_to_use
 
-        rectangles: list[pymupdf.Rect] = []
+        rectangles: list[PageCropLayout] = []
         for i in tqdm(range(doc.page_count)):
             page = doc.load_page(i)
             x0, y0 = float("inf"), float("inf")
@@ -47,7 +50,7 @@ class OCRBoundsExtractor(BoundsExtractor):
                 by1 = (top + height) * scale_factor
                 x0, y0 = min(x0, bx0), min(y0, by0)
                 x1, y1 = max(x1, bx1), max(y1, by1)
-            rect = self._get_rectangle(
+            rect = self._get_layout(
                 bounds=pymupdf.Rect(
                     x0=x0,
                     y0=y0,

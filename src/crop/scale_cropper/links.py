@@ -3,13 +3,14 @@ from collections.abc import Sequence
 from typing import Any, Optional
 
 import pymupdf
+from page_layout import PageCropLayout
 
 from .coordinate_transformer import CoordinateTransformer
 from .internal_destinations import Converted, Invalid, InternalDestinationResolver
 
 
 def copy_links(
-    src: pymupdf.Document, page_bounds: Sequence[pymupdf.Rect], dst: pymupdf.Document
+    src: pymupdf.Document, page_layouts: Sequence[PageCropLayout], dst: pymupdf.Document
 ) -> None:
     """
     Preserve links for the ScaleCropper method:
@@ -20,17 +21,17 @@ def copy_links(
     for page_num in range(dst.page_count):
         src_page = src[page_num]
         dst_page = dst[page_num]
-
-        dst_width = dst_page.rect.width
-        dst_height = dst_page.rect.height
-        page_bound = page_bounds[page_num]
+        layout = page_layouts[page_num]
+        if layout.destination_rect.is_empty or layout.destination_rect.is_infinite:
+            continue
 
         coordinate_transformer = CoordinateTransformer(
-            page_bound, dst_width, dst_height
+            layout.content_rect,
+            layout.destination_rect,
         )
         for link in src_page.get_links():
             transformed_link = transform_link_destination(
-                link, dst, page_bounds, page_num, resolver
+                link, dst, page_layouts, page_num, resolver
             )
             if transformed_link is None:
 
@@ -48,7 +49,7 @@ def copy_links(
 def transform_link_destination(
     link: dict[str, Any],
     dst_doc: pymupdf.Document,
-    page_bounds: Sequence[pymupdf.Rect],
+    page_layouts: Sequence[PageCropLayout],
     page_num: int,
     resolver: InternalDestinationResolver,
 ) -> Optional[dict[str, Any]]:
@@ -89,11 +90,13 @@ def transform_link_destination(
         return None
 
     if isinstance(link_dest_to, pymupdf.Point):
-        link_dest_to_width = dst_doc[link_dest_page].rect.width
-        link_dest_to_height = dst_doc[link_dest_page].rect.height
-        link_dest_page_bound = page_bounds[link_dest_page]
+        dest_layout = page_layouts[link_dest_page]
+        if dest_layout.destination_rect.is_empty or dest_layout.destination_rect.is_infinite:
+            new_link["to"] = pymupdf.Point(0.0, 0.0)
+            return new_link
         link_coord_transformer = CoordinateTransformer(
-            link_dest_page_bound, link_dest_to_width, link_dest_to_height
+            dest_layout.content_rect,
+            dest_layout.destination_rect,
         )
         transformed_to_point = link_coord_transformer.transform_point(
             link_dest_to.x, link_dest_to.y
