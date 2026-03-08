@@ -9,6 +9,14 @@ from .coordinate_transformer import CoordinateTransformer
 from .internal_destinations import Converted, Invalid, InternalDestinationResolver
 
 
+def _clip_rect_to_content(rect: pymupdf.Rect, content_rect: pymupdf.Rect) -> Optional[pymupdf.Rect]:
+    clipped_rect = pymupdf.Rect(rect)
+    clipped_rect.intersect(content_rect)
+    if clipped_rect.is_empty:
+        return None
+    return clipped_rect
+
+
 def copy_links(
     src: pymupdf.Document, page_layouts: Sequence[PageCropLayout], dst: pymupdf.Document
 ) -> None:
@@ -34,10 +42,13 @@ def copy_links(
                 link, dst, page_layouts, page_num, resolver
             )
             if transformed_link is None:
-
                 continue
 
-            new_from = coordinate_transformer.transform_rect(transformed_link["from"])
+            clipped_from = _clip_rect_to_content(transformed_link["from"], layout.content_rect)
+            if clipped_from is None:
+                continue
+
+            new_from = coordinate_transformer.transform_rect(clipped_from)
 
             if new_from.is_empty:
                 continue

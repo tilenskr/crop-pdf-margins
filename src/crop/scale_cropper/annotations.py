@@ -25,6 +25,14 @@ ANNOT_TYPES_WITHOUT_RECT_PROPERTY = {
 }
 
 
+def _annotation_is_visible(
+    src_annotation: pymupdf.Annot, content_rect: pymupdf.Rect
+) -> bool:
+    annotation_rect = pymupdf.Rect(src_annotation.rect)
+    annotation_rect.intersect(content_rect)
+    return not annotation_rect.is_empty
+
+
 @dataclass(frozen=True, slots=True)
 class AnnotationInfo:
     type: AnnotType
@@ -63,6 +71,9 @@ def copy_annotations(
         )
 
         for src_annotation in src_page.annots():
+            if not _annotation_is_visible(src_annotation, layout.content_rect):
+                continue
+
             annotation_type = AnnotType(src_annotation.type[0])
             new_rect = coordinate_transformer.transform_rect(src_annotation.rect)
             try:

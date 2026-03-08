@@ -79,6 +79,42 @@ class ScalePaddingTests(unittest.TestCase):
         assert transformed is not None
         self.assertEqual(transformed["to"], pymupdf.Point(10, 20))
 
+    def test_scale_cropper_skips_links_outside_content_rect(self) -> None:
+        doc = pymupdf.open()
+        page = doc.new_page(width=200, height=200)
+        page.insert_link(
+            {
+                "kind": pymupdf.LINK_URI,
+                "uri": "https://example.com/footer",
+                "from": pymupdf.Rect(20, 170, 120, 190),
+            }
+        )
+        layout = PageCropLayout(
+            page_rect=page.rect,
+            content_rect=pymupdf.Rect(0, 0, 200, 160),
+            visible_rect=pymupdf.Rect(0, 0, 200, 170),
+            destination_rect=pymupdf.Rect(0, 0, 200, 180),
+        )
+
+        out = ScaleCropper(doc).crop([layout])
+
+        self.assertEqual(out[0].get_links(), [])
+
+    def test_scale_cropper_skips_annotations_outside_content_rect(self) -> None:
+        doc = pymupdf.open()
+        page = doc.new_page(width=200, height=200)
+        page.add_text_annot((40, 180), "Footer note")
+        layout = PageCropLayout(
+            page_rect=page.rect,
+            content_rect=pymupdf.Rect(0, 0, 200, 160),
+            visible_rect=pymupdf.Rect(0, 0, 200, 170),
+            destination_rect=pymupdf.Rect(0, 0, 200, 180),
+        )
+
+        out = ScaleCropper(doc).crop([layout])
+
+        self.assertEqual(list(out[0].annots() or []), [])
+
     def test_coordinate_transformer_handles_empty_destination_rect(self) -> None:
         transformer = CoordinateTransformer(
             pymupdf.Rect(0, 0, 100, 100),
